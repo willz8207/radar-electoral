@@ -1690,6 +1690,7 @@ function renderTermo(){
         <div class="small"><span class="label">Base electoral</span><br>${h?`Mejor votación: <b class="mono">${fmt(h.best.v)}</b> (${h.best.y}, ${HNOM[h.best.code]} ${esc(terrNom(h.best.code,h.best.terr).split(",")[0])}) · ${h.es.length} elecciones, ${h.es.filter(e=>e.win).length} ganadas <button class="btn sm ghost" style="padding:0" data-tver="${h.n}">Ver ficha →</button>`:'<span class="muted">Sin historial electoral en 2003–2023.</span>'}</div>
         ${(s.senales||[]).length?`<div class="small"><span class="label">Señales</span><ul style="margin:4px 0 0;padding-left:1.1rem">${s.senales.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}
         ${m.notas?`<p class="small muted" style="margin:0">${esc(m.notas)}</p>`:""}
+        ${apoyosHTML(s)}
         ${hm.length>1?`<div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Audiencia</th><th>Interacciones</th><th>Vistas TikTok</th></tr></thead><tbody>${hm.map(x=>{ const t=tMetr(x); return `<tr><td class="num">${esc(x.fecha)}</td><td class="num">${fmt(t.aud)}</td><td class="num">${fmt(t.inter)}</td><td class="num">${x.tt?fmt(nz0(x.tt.vistas)):"—"}</td></tr>`; }).join("")}</tbody></table></div>`:""}
       </div></article>`; }).join("")}</div>`;
   const opts=S.map(s=>`<option value="${esc(s.id)}">${esc(s.nombre)}</option>`).join("");
@@ -1700,8 +1701,61 @@ function renderTermo(){
       <div class="grid-f"><label class="chk"><input type="checkbox" id="tf-pauta"> Pauta propia activa en Meta</label><label class="field" style="grid-column:1/-1"><span>Notas</span><input type="text" id="tf-notas"></label></div>
       <div><button class="btn primary" type="submit">Guardar medición</button></div>
     </form></details>`;
-  out.innerHTML=rank+tabla+curva+fichas+(ESTATICO?"":form)+`<p class="note">Método: interacciones de las publicaciones propias dentro de la ventana (sin colaboraciones de terceros). Tasa de interacción = interacciones por publicación ÷ seguidores, promediada entre Facebook e Instagram. El índice compara a los aspirantes entre sí con los pesos que ves en la leyenda; un aspirante sin cuenta en una red obtiene cero en ese componente.</p>`;
+  out.innerHTML=rank+tabla+curva+caudalHTML(S,idx.map(r=>r.id),colOf)+fichas+(ESTATICO?"":form)+(ESTATICO?"":apoyoDatalist(S))+`<p class="note">Método: interacciones de las publicaciones propias dentro de la ventana (sin colaboraciones de terceros). Tasa de interacción = interacciones por publicación ÷ seguidores, promediada entre Facebook e Instagram. El índice compara a los aspirantes entre sí con los pesos que ves en la leyenda; un aspirante sin cuenta en una red obtiene cero en ese componente.</p>`;
 }
+/* Calculadora de apoyos */
+function apoyoInfo(a,depto){
+  const h=histDe(a.histNombre||a.nombre); if(!h) return {a,v:0,e:null};
+  const dk=DKEY[depto], inD=e=>(e.code==="A"||e.code==="C")?H.munis[e.terr][0]===dk:e.terr===dk;
+  const es=h.es.filter(inD), pool=es.length?es:h.es, e=pool.slice().sort((x,y)=>y.y.localeCompare(x.y)||y.v-x.v)[0];
+  return {a,v:e.v,e,n:h.n};
+}
+function apoyosHTML(s){
+  const ap=s.apoyos||[], inf=ap.map(a=>apoyoInfo(a,s.depto)), tot=inf.reduce((x,i)=>x+i.v,0);
+  const lista=inf.map((i,k)=>`<li style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><span>${i.n!=null?`<button class="btn sm ghost" style="padding:0;color:var(--ink);text-align:left" data-tver="${i.n}">${esc(i.a.nombre)}</button>`:esc(i.a.nombre)}${i.e?` <span class="muted">· ${i.e.y} ${HNOM[i.e.code]} ${esc(terrNom(i.e.code,i.e.terr).split(",")[0])}</span>`:' <span class="muted">· sin historial</span>'}${i.a.nota?`<br><span class="muted">${esc(i.a.nota)}</span>`:""}</span><span class="mono">${i.e?fmt(i.v):"—"}${ESTATICO?"":` <button class="btn sm ghost" data-apodel="${esc(s.id)}|${k}" aria-label="Quitar apoyo" title="Quitar">✕</button>`}</span></li>`).join("");
+  const form=ESTATICO?"":`<div class="row" style="gap:6px"><input type="text" list="apo-list" id="apo-${esc(s.id)}" placeholder="Nombre de quien lo apoya" style="flex:1;min-width:10rem"><input type="text" id="apon-${esc(s.id)}" placeholder="Fuente o nota (opcional)" style="flex:1;min-width:8rem"><button class="btn sm" data-apoadd="${esc(s.id)}">Agregar apoyo</button></div>`;
+  return `<div class="small" style="display:flex;flex-direction:column;gap:6px"><span class="label">Apoyos · caudal 2019–2023: <b class="mono" style="color:var(--ink)">${fmt(tot)}</b> votos</span>
+    ${ap.length?`<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px">${lista}</ul>`:'<span class="muted">Sin apoyos registrados.</span>'}${form}</div>`;
+}
+function apoyoDatalist(S){
+  if(hState!=="ok") return "";
+  if(!nameIdx) buildNameIdx();
+  const deps=new Set(S.map(s=>DKEY[s.depto])), opts=new Set();
+  nameIdx.forEach((es,n)=>{ if(es.some(e=>+e.y>=2015&&(e.win||e.code==="A"||e.code==="G")&&deps.has((e.code==="A"||e.code==="C")?H.munis[e.terr][0]:e.terr))) opts.add(nname(n)); });
+  return `<datalist id="apo-list">${[...opts].sort((a,b)=>a.localeCompare(b,"es")).map(o=>`<option value="${esc(o)}"></option>`).join("")}</datalist>`;
+}
+function caudalHTML(S,orden,colOf){
+  if(!S.some(s=>(s.apoyos||[]).length)) return `<div class="sheet pad" style="display:flex;flex-direction:column;gap:6px"><h3>Caudal de apoyos</h3><p class="small muted" style="margin:0">Registra en la ficha de cada aspirante quién lo respalda (concejales, diputados, exalcaldes, líderes). La app suma los votos que esas personas obtuvieron en 2019 y 2023 y muestra en qué comunas son fuertes.</p></div>`;
+  const byId=Object.fromEntries(S.map(s=>[s.id,s]));
+  const filas=orden.map(id=>{ const s=byId[id], inf=(s.apoyos||[]).map(a=>apoyoInfo(a,s.depto)), tot=inf.reduce((x,i)=>x+i.v,0), h=histDe(s.histNombre);
+    return {s,inf,tot,propio:h?h.best.v:0}; });
+  const mx=Math.max(1,...filas.map(f=>f.tot+f.propio));
+  const muni=S[0].municipio, mi=muni?midx[DKEY[S[0].depto]+"|"+muni]:null, hasP=hState==="ok"&&mi!=null&&H.pmun.includes(mi), id="cz"+(++zSeq);
+  if(hasP) loadP(mi).then(d=>{ const el=document.getElementById(id); if(!el||!d) return;
+    const html=filas.filter(f=>f.inf.some(i=>i.e&&(i.e.y==="2023"||i.e.y==="2019")&&(i.e.code==="A"||i.e.code==="C")&&+i.e.terr===mi)).map(f=>{
+      const Z=new Map(), cm=p=>String(p[4]).replace(/^\d+\s*(?=\D)/,"").trim();
+      f.inf.forEach(i=>{ if(!i.e||+i.e.terr!==mi||!(i.e.code==="A"||i.e.code==="C")) return; const ci="ACGS".indexOf(i.e.code);
+        d.r.forEach(([pl,cc,p,n,v])=>{ if(cc!==ci||n!==i.n||d.p[pl][0]!==i.e.y) return; const k=tc(cm(d.p[pl])); Z.set(k,(Z.get(k)||0)+v); }); });
+      const top=[...Z].sort((a,b)=>b[1]-a[1]).slice(0,5);
+      return `<div class="small"><b>${esc(f.s.nombre)}</b>: ${top.map(([k,v])=>`${esc(k)} <span class="mono">${fmt(v)}</span>`).join(" · ")||"—"}</div>`; }).join("");
+    el.innerHTML=html?`<span class="label">Comunas donde son más fuertes sus apoyos</span>${html}`:""; });
+  return `<div class="sheet pad" style="display:flex;flex-direction:column;gap:10px"><h3>Caudal de apoyos</h3>
+    <p class="small muted" style="margin:0">Votos que obtuvieron en su última elección (2019 o 2023) las personas que respaldan a cada aspirante, sumados a la mejor votación propia del aspirante. Es una referencia de estructura: los votos no se transfieren completos.</p>
+    <div class="legend"><span><i style="background:var(--c-base)"></i>Votación propia</span><span><i style="background:var(--c-musculo)"></i>Votos de sus apoyos</span></div>
+    ${filas.map(f=>`<div class="rk" style="grid-template-columns:minmax(0,1fr) 7rem"><div class="who"><b>${esc(f.s.nombre)}</b><span class="small muted">${f.inf.length} apoyo${f.inf.length===1?"":"s"}</span></div><span class="tot" style="grid-column:2;font-size:1.1rem">${fmt(f.tot+f.propio)}<small>votos de referencia</small></span>
+      <div class="bar" style="grid-column:1/2"><i style="width:${f.propio/mx*100}%;background:var(--c-base)"></i><i style="width:${f.tot/mx*100}%;background:var(--c-musculo)"></i></div></div>`).join("")}
+    <div id="${id}" style="display:flex;flex-direction:column;gap:4px"></div></div>`;
+}
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("button"); if(!t) return;
+  if(t.dataset.apoadd){ const id=t.dataset.apoadd, inp=$("#apo-"+id), nota=$("#apon-"+id).value.trim(), nombre=inp.value.trim(); if(!nombre){ inp.focus(); return; }
+    const s=segs.find(x=>x.id===id); if(!nameIdx) buildNameIdx();
+    const k=nrm(nombre), n=H.names.findIndex((x,i)=>nrm(x)===k&&nameIdx.has(i));
+    const ap=[...(s.apoyos||[]),{nombre:n>=0?nname(n):nombre,histNombre:n>=0?H.names[n]:"",nota}];
+    try{ await db.collection("seguimiento").doc(id).update({apoyos:ap}); toast(n>=0?"Apoyo agregado":"Apoyo agregado sin historial electoral"); }catch(err){ toast("No se pudo guardar el apoyo."); } }
+  else if(t.dataset.apodel){ const [id,k]=t.dataset.apodel.split("|"), s=segs.find(x=>x.id===id); const ap=(s.apoyos||[]).filter((_,i)=>i!==+k);
+    try{ await db.collection("seguimiento").doc(id).update({apoyos:ap}); toast("Apoyo quitado"); }catch(err){ toast("No se pudo quitar el apoyo."); } }
+});
 document.addEventListener("change",e=>{ if(e.target.id==="t-cont"){ tCont=e.target.value; renderTermo(); } });
 document.addEventListener("click",e=>{ const t=e.target.closest("button"); if(t&&t.dataset.tver){ if(!nameIdx) buildNameIdx(); hSel=+t.dataset.tver; hfe=null; hv.modo="candidatos"; location.hash="#historico"; } });
 document.addEventListener("submit",async e=>{
