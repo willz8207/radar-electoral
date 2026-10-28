@@ -342,8 +342,12 @@ td.wrap{white-space:normal;min-width:13rem;text-align:left;font-size:.78rem;colo
         <h2>Termómetro digital</h2>
         <p>Mediciones periódicas de redes, pauta y señales públicas de cada aspirante, actualizadas en cada revisión semanal.</p>
       </div>
-      <label class="field" style="min-width:240px"><span>Contienda</span><select id="t-cont"></select></label>
+      <div class="row" style="gap:8px;align-items:flex-end">
+        <label class="field" style="min-width:240px"><span>Contienda</span><select id="t-cont"></select></label>
+        <button class="btn primary" id="t-pdf" type="button">Descargar informe PDF</button>
+      </div>
     </div>
+    <p class="small muted" id="t-pdf-st" style="margin:0" aria-live="polite"></p>
     <div id="t-out" style="display:flex;flex-direction:column;gap:16px"></div>
   </section>
 
@@ -1743,6 +1747,72 @@ function renderTermo(){
   const lectura=an?`<div class="sheet pad" style="display:flex;flex-direction:column;gap:8px;border-left:4px solid var(--accent)"><span class="label">Lectura de la contienda · ${esc(an.fecha||"")}</span><div class="ai-out" style="max-width:85ch">${esc(an.texto||"")}</div></div>`:"";
   out.innerHTML=rank+lectura+evol+explica+tabla+curva+caudalHTML(S,idx.map(r=>r.id),colOf)+fichas+(ESTATICO?"":form)+(ESTATICO?"":apoyoDatalist(S))+`<p class="note">Método: interacciones de las publicaciones propias dentro de la ventana (sin colaboraciones de terceros). Tasa de interacción = interacciones por publicación ÷ seguidores, promediada entre Facebook e Instagram. El índice compara a los aspirantes entre sí con los pesos que ves en la leyenda; un aspirante sin cuenta en una red obtiene cero en ese componente.</p>`;
 }
+/* Informe PDF del termómetro: se arma con lo que muestra la vista y se pagina en A4 */
+const PDF_LIBS=["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js","https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.12/dist/html2canvas-pro.min.js"];
+function cargarScript(src){ return new Promise((ok,ko)=>{ if(document.querySelector(`script[src="${src}"]`)) return ok(); const s=document.createElement("script"); s.src=src; s.onload=ok; s.onerror=()=>ko(new Error("No se pudo cargar "+src)); document.head.appendChild(s); }); }
+async function informePDF(){
+  const btn=$("#t-pdf"), st=$("#t-pdf-st");
+  if(tState!=="ok"||!$("#t-out .rank")){ st.textContent="No hay mediciones para generar el informe."; return; }
+  btn.disabled=true; st.textContent="Preparando el informe…";
+  const root=document.documentElement, temaPrevio=root.getAttribute("data-theme");
+  const caja=document.createElement("div");
+  try{
+    for(const s of PDF_LIBS) await cargarScript(s);
+    root.setAttribute("data-theme","light");
+    const nombreC=contiendaNom(...tCont.split("|")), fechaTxt=new Date().toLocaleDateString("es-CO",{day:"numeric",month:"long",year:"numeric"});
+    caja.style.cssText="position:fixed;left:-10000px;top:0;width:820px;background:#fbfcf8;color:#1c2332;font-family:var(--f-body)";
+    caja.innerHTML=`<div class="sheet pad" style="display:flex;flex-direction:column;gap:14px;border-top:6px solid var(--accent)">
+      <span class="label">Radar Electoral 2027 · Informe del termómetro digital</span>
+      <h2 style="margin:0;font-size:2rem;line-height:1.1">${esc(nombreC)}</h2>
+      <p style="margin:0">Generado el ${esc(fechaTxt)}</p>
+      <p class="small" style="margin:0;border-left:4px solid var(--accent);padding-left:10px"><b>William Andrés Muriel</b><br>Gobierno | Territorio | Tecnología<br>williamandresm@gmail.com · linkedin.com/in/willi-muriel</p>
+      <p class="small muted" style="margin:0">Índice relativo de presencia y conversación digital en Facebook, Instagram y TikTok. No es una encuesta ni mide intención de voto (Ley 2494 de 2025).</p></div>`;
+    document.body.appendChild(caja);
+    const out=$("#t-out");
+    for(const nodo of out.children){
+      if(nodo.matches("details,form,datalist")) continue;
+      if(nodo.classList.contains("deptos")){ for(const art of nodo.children){ const c=art.cloneNode(true); c.style.marginTop="14px"; caja.appendChild(c); } continue; }
+      const c=nodo.cloneNode(true); c.style.marginTop="14px"; caja.appendChild(c);
+    }
+    caja.querySelectorAll("button,input,select,form,datalist,.links").forEach(e=>e.remove());
+    caja.querySelectorAll("details").forEach(d=>d.open=true);
+    caja.querySelectorAll(".tbl-wrap").forEach(t=>{ t.style.overflow="visible"; });
+    caja.querySelectorAll("table").forEach(t=>{ t.style.width="100%"; t.style.tableLayout="auto"; t.style.fontSize="11.5px"; });
+    caja.querySelectorAll("th,td").forEach(c=>{ c.style.whiteSpace="normal"; c.style.minWidth="0"; c.style.padding="4px 5px"; });
+    // Los SVG se dibujan como imagen aparte: se fijan los colores calculados
+    caja.querySelectorAll("svg *").forEach(el=>{ const cs=getComputedStyle(el); ["fill","stroke"].forEach(p=>{ const v=el.getAttribute(p)||""; if(v.includes("var(")||el.style[p]) el.style[p]=cs[p]; }); if((el.getAttribute("fill")||"").includes("var(")) el.setAttribute("fill",cs.fill); if((el.getAttribute("stroke")||"").includes("var(")) el.setAttribute("stroke",cs.stroke); });
+    if(document.fonts&&document.fonts.ready) await document.fonts.ready;
+    const {jsPDF}=window.jspdf, doc=new jsPDF({unit:"mm",format:"a4"});
+    const PW=210, PH=297, MX=12, MT=12, MB=16, AW=PW-2*MX, AH=PH-MT-MB;
+    let y=MT, pag=1;
+    const pie=()=>{ doc.setFontSize(8); doc.setTextColor(91,100,116); doc.text(`Radar Electoral · ${nombreC} · William Andrés Muriel`,MX,PH-8); doc.text(`Página ${pag}`,PW-MX,PH-8,{align:"right"}); };
+    const bloques=[...caja.children];
+    for(let i=0;i<bloques.length;i++){
+      st.textContent=`Generando página ${pag}… (${i+1} de ${bloques.length} secciones)`;
+      const cv=await html2canvas(bloques[i],{scale:2,backgroundColor:"#fbfcf8",logging:false,useCORS:true});
+      const mmPx=AW/cv.width; let alto=cv.height*mmPx, desde=0;
+      if(alto>AH-(y-MT)&&y>MT&&alto<=AH){ pie(); doc.addPage(); pag++; y=MT; }
+      while(desde<cv.height){
+        const cabe=Math.min(cv.height-desde,Math.floor((AH-(y-MT))/mmPx));
+        if(cabe<40&&y>MT){ pie(); doc.addPage(); pag++; y=MT; continue; }
+        const trozo=document.createElement("canvas"); trozo.width=cv.width; trozo.height=cabe;
+        trozo.getContext("2d").drawImage(cv,0,desde,cv.width,cabe,0,0,cv.width,cabe);
+        doc.addImage(trozo.toDataURL("image/jpeg",0.92),"JPEG",MX,y,AW,cabe*mmPx);
+        desde+=cabe; y+=cabe*mmPx+4;
+        if(desde<cv.height){ pie(); doc.addPage(); pag++; y=MT; }
+      }
+    }
+    pie();
+    const blob=doc.output("blob"), fname=`Informe_Radar_Electoral_${tSlug(tCont)}_${hoy()}.pdf`;
+    const dl=window.claude&&window.claude.use?await claude.use("downloads"):null;
+    if(dl){
+      try{ await dl.save({filename:fname,data:blob}); st.textContent=`Informe listo: ${pag} páginas.`; }
+      catch(e){ st.textContent=e&&e.code==="declined"?"Descarga cancelada.":"No se pudo guardar el archivo en esta vista."; }
+    } else { doc.save(fname); st.textContent=`Informe listo: ${pag} páginas.`; }
+  }catch(e){ console.error(e); st.textContent="No se pudo generar el informe: "+(e&&e.message||e); }
+  finally{ caja.remove(); if(temaPrevio==null) root.removeAttribute("data-theme"); else root.setAttribute("data-theme",temaPrevio); btn.disabled=false; }
+}
+document.addEventListener("click",e=>{ if(e.target.closest&&e.target.closest("#t-pdf")) informePDF(); });
 /* Calculadora de apoyos */
 function apoyoInfo(a,depto){
   const h=histDe(a.histNombre||a.nombre); if(!h) return {a,v:0,e:null};
