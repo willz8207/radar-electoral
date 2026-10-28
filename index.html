@@ -197,6 +197,9 @@ legend{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(
 @media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s ease}}
 
 [hidden]{display:none!important}
+.creditos{border-top:1px solid var(--rule);background:var(--sheet)}
+.cred-in{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 28px}
+.cred-marca{display:block;font-family:var(--f-display);font-stretch:70%;font-weight:800;font-size:1.3rem;text-transform:uppercase;color:var(--accent)}
 /* Histórico */
 .seg{flex-wrap:wrap}
 .hgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
@@ -243,7 +246,7 @@ td.wrap{white-space:normal;min-width:13rem;text-align:left;font-size:.78rem;colo
   <div class="top-in">
     <div class="brand">
       <h1>Radar <span>Electoral</span> 2027</h1>
-      <small>Valle · Quindío · Risaralda · Chocó — alcaldías, concejos, gobernaciones y asambleas</small>
+      <small>Valle · Quindío · Risaralda · Chocó — por William Andrés Muriel</small>
     </div>
     <nav class="tabs" aria-label="Vistas">
       <a href="#panorama" data-v="panorama">Panorama</a>
@@ -366,6 +369,16 @@ td.wrap{white-space:normal;min-width:13rem;text-align:left;font-size:.78rem;colo
     <p class="note">Fuentes: Registraduría Nacional del Estado Civil, Observatorio, archivos de resultados mesa a mesa de las elecciones territoriales de 2019 y 2023; y CEDAE, Centro de Estudios sobre Desarrollo Económico de la Universidad de los Andes con Datasketch, para 2003, 2007, 2011 y 2015, incluidas las curules oficiales y el censo electoral. Las curules de 2019 y 2023 son una estimación de esta herramienta (umbral del 50 % del cociente electoral y cifra repartidora) y pueden diferir del escrutinio oficial. Los partidos se agrupan en familias según su nombre; las coaliciones y los grupos significativos se muestran aparte. Nombres iguales en lugares distintos pueden ser personas diferentes.</p>
   </section>
 </main>
+
+<footer class="creditos">
+  <div class="cred-in">
+    <div><span class="cred-marca">Radar Electoral</span><span class="small muted">Herramienta de análisis electoral territorial</span></div>
+    <div class="small"><span class="label">Desarrollo y análisis</span><br><b>William Andrés Muriel</b> · Gobierno | Territorio | Tecnología<br>
+      <span class="muted">Administrador de Empresas · Especialista en Finanzas Públicas</span></div>
+    <div class="small"><span class="label">Contacto</span><br><span class="mono">williamandresm@gmail.com</span><br><a href="https://www.linkedin.com/in/willi-muriel" target="_blank" rel="noopener">linkedin.com/in/willi-muriel</a></div>
+    <div class="small muted" style="grid-column:1/-1">© 2026 William Andrés Muriel. Datos electorales: Registraduría Nacional del Estado Civil y CEDAE (Universidad de los Andes). Las mediciones digitales se basan en información pública y no constituyen encuestas de intención de voto.</div>
+  </div>
+</footer>
 
 <div class="overlay" id="ov" hidden>
   <form class="modal" id="cform" autocomplete="off">
@@ -1589,16 +1602,18 @@ document.addEventListener("input",e=>{ if(e.target.id==="h-q"){ hv.q=e.target.va
 
 /* ---------- Termómetro digital ---------- */
 async function loadTermoEstatico(){
-  try{ const d=await (await fetch("termometro.json")).json(); segs=d.seguimiento||[]; meds=d.mediciones||[]; tState="ok";
+  try{ const d=await (await fetch("termometro.json")).json(); segs=d.seguimiento||[]; meds=d.mediciones||[]; anas=d.analisis||[]; tState="ok";
     if(d.actualizado) $("#st-store").innerHTML=`<span class="dot ok"></span>Versión de consulta · mediciones al ${esc(d.actualizado)}`; }
   catch(e){ tState="error"; }
   renderAll();
 }
-let segs=[], meds=[], tState="cargando", tCont="", tUnsub=[];
+let segs=[], meds=[], anas=[], tState="cargando", tCont="", tUnsub=[];
+const tSlug=k=>nrm(k).replace(/[^A-Z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase();
 const TCOMP=[{k:"conv",n:"Conversación",w:35,c:"var(--c-digital)"},{k:"tasa",n:"Tasa de interacción",w:20,c:"var(--c-base)"},{k:"const",n:"Constancia",w:15,c:"var(--c-musculo)"},{k:"video",n:"Alcance en video",w:15,c:"var(--c-medios)"},{k:"aud",n:"Audiencia",w:15,c:"var(--s6)"}];
 function initTermo(){
   if(tUnsub.length) return;
   tUnsub.push(db.collection("seguimiento").onSnapshot(s=>{ segs=s.docs.map(d=>({id:d.id,...clone(d.data())})); tState="ok"; if(vista()==="termometro") renderTermo(); },()=>{ tState="error"; if(vista()==="termometro") renderTermo(); }));
+  tUnsub.push(db.collection("analisis").onSnapshot(s=>{ anas=s.docs.map(d=>({id:d.id,...clone(d.data())})); if(vista()==="termometro") renderTermo(); },()=>{}));
   tUnsub.push(db.collection("mediciones").onSnapshot(s=>{ meds=s.docs.map(d=>({id:d.id,...clone(d.data())})); if(vista()==="termometro") renderTermo(); },()=>{}));
 }
 const tKey=s=>[s.cargo,s.depto,s.municipio||""].join("|");
@@ -1627,16 +1642,16 @@ function histDe(nombre){
   const es=nameIdx.get(n), best=es.reduce((a,e)=>e.v>a.v?e:a,es[0]);
   return {n,es,best};
 }
-function tLine(fechas,series){
-  if(fechas.length<2) return `<p class="small muted" style="margin:0">La curva aparece desde la segunda medición. Mientras tanto, esta es la participación de cada uno en la conversación del ${esc(fechas[0]||"")}.</p>`;
-  const W=600,Ht=230,L=44,R=130,T=12,B=28, X=i=>L+i*(W-L-R)/(fechas.length-1);
-  const mx=Math.max(0.05,...series.flatMap(s=>s.v.filter(v=>v!=null))), step=mx<=0.25?0.05:0.1, nice=Math.ceil(mx/step-1e-9)*step, Y=v=>T+(1-v/nice)*(Ht-T-B);
-  let g=""; for(let v=0;v<=nice+1e-9;v+=step) g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--rule-2)"/><text x="${L-6}" y="${Y(v)+3}" text-anchor="end">${fmt(v*100)}%</text>`;
+function tLine(fechas,series,puntos){
+  if(fechas.length<2&&!puntos) return `<p class="small muted" style="margin:0">La curva aparece desde la segunda medición. Mientras tanto, esta es la participación de cada uno en la conversación del ${esc(fechas[0]||"")}.</p>`;
+  const W=600,Ht=240,L=44,R=150,T=14,B=28, X=i=>fechas.length<2?L+(W-L-R)/2:L+i*(W-L-R)/(fechas.length-1);
+  const mx=Math.max(0.05,...series.flatMap(s=>s.v.filter(v=>v!=null))), step=puntos?20:(mx<=0.25?0.05:0.1), nice=puntos?100:Math.ceil(mx/step-1e-9)*step, Y=v=>T+(1-v/nice)*(Ht-T-B);
+  let g=""; for(let v=0;v<=nice+1e-9;v+=step) g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--rule-2)"/><text x="${L-6}" y="${Y(v)+3}" text-anchor="end">${puntos?fmt(v):fmt(v*100)+"%"}</text>`;
   fechas.forEach((f,i)=>{ g+=`<text x="${X(i)}" y="${Ht-8}" text-anchor="middle">${f.slice(5)}</text>`; });
   const ends=[];
   series.forEach(s=>{ const pts=s.v.map((v,i)=>v==null?null:[X(i),Y(v)]).filter(Boolean); if(!pts.length) return;
     g+=`<path d="${pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ")}" fill="none" stroke="${s.c}" stroke-width="2.2"/>`+pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${s.c}"/>`).join("");
-    const lp=pts[pts.length-1]; ends.push({y:lp[1],x:lp[0],t:s.n,c:s.c}); });
+    const lp=pts[pts.length-1], lv=s.v.filter(v=>v!=null).slice(-1)[0]; ends.push({y:lp[1],x:lp[0],t:s.n+(puntos?" · "+fmt(lv):""),c:s.c}); });
   ends.sort((a,b)=>a.y-b.y); for(let i=1;i<ends.length;i++) if(ends[i].y-ends[i-1].y<12) ends[i].y=ends[i-1].y+12;
   ends.forEach(e=>{ g+=`<text x="${e.x+8}" y="${e.y+3}" style="fill:var(--ink);font-family:var(--f-body);font-size:11px">${esc(e.t)}</text>`; });
   return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${Ht}" style="min-width:480px;max-width:760px;width:100%" role="img" aria-label="Participación en la conversación por fecha">${g}</svg></div>`;
@@ -1690,6 +1705,8 @@ function renderTermo(){
         <div class="small"><span class="label">Base electoral</span><br>${h?`Mejor votación: <b class="mono">${fmt(h.best.v)}</b> (${h.best.y}, ${HNOM[h.best.code]} ${esc(terrNom(h.best.code,h.best.terr).split(",")[0])}) · ${h.es.length} elecciones, ${h.es.filter(e=>e.win).length} ganadas <button class="btn sm ghost" style="padding:0" data-tver="${h.n}">Ver ficha →</button>`:'<span class="muted">Sin historial electoral en 2003–2023.</span>'}</div>
         ${(s.senales||[]).length?`<div class="small"><span class="label">Señales</span><ul style="margin:4px 0 0;padding-left:1.1rem">${s.senales.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}
         ${m.notas?`<p class="small muted" style="margin:0">${esc(m.notas)}</p>`:""}
+        ${(()=>{ const a=(s.analisis||[]).slice().sort((x,y)=>y.fecha.localeCompare(x.fecha)); if(!a.length) return "";
+          return `<div class="small" style="display:flex;flex-direction:column;gap:4px;background:var(--accent-soft);padding:10px 12px;border-radius:4px"><span class="label">Análisis · ${esc(a[0].fecha)}</span><span style="line-height:1.55">${esc(a[0].texto)}</span>${a.length>1?`<details><summary class="small" style="cursor:pointer">Análisis anteriores</summary>${a.slice(1).map(x=>`<p class="small" style="margin:6px 0 0"><b class="mono">${esc(x.fecha)}</b> ${esc(x.texto)}</p>`).join("")}</details>`:""}</div>`; })()}
         ${apoyosHTML(s)}
         ${hm.length>1?`<div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Audiencia</th><th>Interacciones</th><th>Vistas TikTok</th></tr></thead><tbody>${hm.map(x=>{ const t=tMetr(x); return `<tr><td class="num">${esc(x.fecha)}</td><td class="num">${fmt(t.aud)}</td><td class="num">${fmt(t.inter)}</td><td class="num">${x.tt?fmt(nz0(x.tt.vistas)):"—"}</td></tr>`; }).join("")}</tbody></table></div>`:""}
       </div></article>`; }).join("")}</div>`;
@@ -1701,7 +1718,30 @@ function renderTermo(){
       <div class="grid-f"><label class="chk"><input type="checkbox" id="tf-pauta"> Pauta propia activa en Meta</label><label class="field" style="grid-column:1/-1"><span>Notas</span><input type="text" id="tf-notas"></label></div>
       <div><button class="btn primary" type="submit">Guardar medición</button></div>
     </form></details>`;
-  out.innerHTML=rank+tabla+curva+caudalHTML(S,idx.map(r=>r.id),colOf)+fichas+(ESTATICO?"":form)+(ESTATICO?"":apoyoDatalist(S))+`<p class="note">Método: interacciones de las publicaciones propias dentro de la ventana (sin colaboraciones de terceros). Tasa de interacción = interacciones por publicación ÷ seguidores, promediada entre Facebook e Instagram. El índice compara a los aspirantes entre sí con los pesos que ves en la leyenda; un aspirante sin cuenta en una red obtiene cero en ese componente.</p>`;
+  const RAW={conv:x=>`${fmt(x.inter)} interacciones`,tasa:x=>`${x.tasa?pct(x.tasa):"0 %"} de tasa`,const:x=>`${fmt(x.pubs)} publicaciones`,video:x=>`${fmt(x.vistas)} vistas en TikTok`,aud:x=>`${fmt(x.aud)} seguidores`};
+  const lider=k=>{ const r=idx.slice().sort((a,b)=>b.contrib[k]-a.contrib[k])[0]; return r?byId[r.id].nombre:""; };
+  const frase=r=>{ const s=byId[r.id], cs=TCOMP.map(c=>({...c,p:r.contrib[c.k]})).sort((a,b)=>b.p-a.p), hi=cs[0], lo=cs[cs.length-1], falta=["fb","ig","tt"].filter(k=>!mUlt[r.id][k]).map(k=>({fb:"Facebook",ig:"Instagram",tt:"TikTok"}[k]));
+    if(r.total<0.5) return `${esc(s.nombre)} no suma puntos en esta revisión: no tuvo publicaciones ni interacciones en la ventana.`;
+    return `<b>${esc(s.nombre)}</b> suma <b>${fmt(r.total,1)}</b> puntos. Su mayor aporte es <b>${hi.n.toLowerCase()}</b> (${fmt(hi.p,1)} de ${hi.w} posibles, con ${RAW[hi.k](r.x)})${lo.p<hi.p?` y donde menos suma es ${lo.n.toLowerCase()} (${fmt(lo.p,1)} de ${lo.w}, con ${RAW[lo.k](r.x)})`:""}.${falta.length?` No suma en lo que depende de ${falta.join(" y ")} porque no se encontró cuenta activa.`:""}${r.x.aud&&!r.x.inter?" Tiene audiencia, pero no la está usando en este periodo.":""}`; };
+  const explica=`<div class="sheet pad" style="display:flex;flex-direction:column;gap:12px"><h3>Cómo se obtiene cada puntaje</h3>
+    <p class="small" style="margin:0;max-width:80ch">El puntaje va de 0 a 100 y se reparte en cinco componentes. En cada uno, el aspirante con el mejor dato de la contienda recibe el puntaje completo y los demás reciben una parte proporcional. Por ejemplo, en <b>conversación</b> (35 puntos) el que más interacciones generó recibe 35; si otro generó la tercera parte, recibe cerca de 12.</p>
+    <div class="tbl-wrap"><table><thead><tr><th>Componente</th><th style="text-align:left">Qué mide</th><th>Puntos máximos</th><th style="text-align:left">Lidera</th></tr></thead><tbody>
+      <tr><td style="text-align:left">Conversación</td><td style="text-align:left;white-space:normal;min-width:16rem">Reacciones, comentarios y compartidos en Facebook e Instagram durante la ventana</td><td class="num">35</td><td style="text-align:left">${esc(lider("conv"))}</td></tr>
+      <tr><td style="text-align:left">Tasa de interacción</td><td style="text-align:left;white-space:normal">Interacciones por publicación divididas entre seguidores: qué tanto responde su audiencia</td><td class="num">20</td><td style="text-align:left">${esc(lider("tasa"))}</td></tr>
+      <tr><td style="text-align:left">Constancia</td><td style="text-align:left;white-space:normal">Número de publicaciones en las tres redes durante la ventana</td><td class="num">15</td><td style="text-align:left">${esc(lider("const"))}</td></tr>
+      <tr><td style="text-align:left">Alcance en video</td><td style="text-align:left;white-space:normal">Reproducciones en TikTok durante la ventana</td><td class="num">15</td><td style="text-align:left">${esc(lider("video"))}</td></tr>
+      <tr><td style="text-align:left">Audiencia</td><td style="text-align:left;white-space:normal">Seguidores sumados en las tres redes</td><td class="num">15</td><td style="text-align:left">${esc(lider("aud"))}</td></tr>
+    </tbody></table></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Aspirante</th>${TCOMP.map(c=>`<th>${c.n} (${c.w})</th>`).join("")}<th>Total</th></tr></thead><tbody>
+      ${idx.map(r=>`<tr><td style="text-align:left;white-space:normal;min-width:9rem"><span class="fdot" style="background:${colOf[r.id]}"></span>${esc(byId[r.id].nombre)}</td>${TCOMP.map(c=>`<td class="num" style="background:color-mix(in srgb,${c.c} ${Math.round(r.contrib[c.k]/c.w*35)}%,transparent)"><b>${fmt(r.contrib[c.k],1)}</b><br><span class="small muted" style="font-family:var(--f-body)">${RAW[c.k](r.x)}</span></td>`).join("")}<td class="num"><b>${fmt(r.total,1)}</b></td></tr>`).join("")}
+    </tbody></table></div>
+    <div style="display:flex;flex-direction:column;gap:6px">${idx.map(r=>`<p class="small" style="margin:0;max-width:85ch">${frase(r)}</p>`).join("")}</div></div>`;
+  const evol=`<div class="sheet pad chart" style="display:flex;flex-direction:column;gap:8px"><h3>Evolución del puntaje</h3>
+    <p class="small muted" style="margin:0">Puntaje de cada aspirante en cada revisión. ${fechas.length<2?"Por ahora hay una sola revisión; desde la próxima verás las líneas de quién sube y quién baja.":"Cada punto es una revisión semanal."}</p>
+    ${tLine(fechas,idx.map(r=>({n:byId[r.id].nombre.split(" ").slice(-2).join(" "),c:colOf[r.id],v:fechas.map(f=>{ const x=porFecha(f).find(z=>z.id===r.id); return x?x.total:null; })})),true)}</div>`;
+  const an=anas.find(a=>a.id===tSlug(tCont));
+  const lectura=an?`<div class="sheet pad" style="display:flex;flex-direction:column;gap:8px;border-left:4px solid var(--accent)"><span class="label">Lectura de la contienda · ${esc(an.fecha||"")}</span><div class="ai-out" style="max-width:85ch">${esc(an.texto||"")}</div></div>`:"";
+  out.innerHTML=rank+lectura+evol+explica+tabla+curva+caudalHTML(S,idx.map(r=>r.id),colOf)+fichas+(ESTATICO?"":form)+(ESTATICO?"":apoyoDatalist(S))+`<p class="note">Método: interacciones de las publicaciones propias dentro de la ventana (sin colaboraciones de terceros). Tasa de interacción = interacciones por publicación ÷ seguidores, promediada entre Facebook e Instagram. El índice compara a los aspirantes entre sí con los pesos que ves en la leyenda; un aspirante sin cuenta en una red obtiene cero en ese componente.</p>`;
 }
 /* Calculadora de apoyos */
 function apoyoInfo(a,depto){

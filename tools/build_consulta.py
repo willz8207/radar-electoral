@@ -5,7 +5,7 @@ Uso:
   python3 tools/build_consulta.py APP_HTML DBEXPORT_DIR "28 de octubre de 2026"
 
 APP_HTML      archivo HTML de la app (tools/app.html)
-DBEXPORT_DIR  carpeta con subcarpetas seguimiento/ y mediciones/ (un JSON por documento)
+DBEXPORT_DIR  carpeta con subcarpetas seguimiento/, mediciones/ y analisis/ (un JSON por documento)
 fecha         texto que se muestra como "mediciones al ..."
 
 Escribe index.html y termometro.json en la raíz del repositorio. historico.json y
@@ -46,6 +46,7 @@ def main(app_html, dbexport, fecha):
         "actualizado": fecha,
         "seguimiento": cargar(os.path.join(dbexport, "seguimiento")),
         "mediciones": cargar(os.path.join(dbexport, "mediciones")),
+        "analisis": cargar(os.path.join(dbexport, "analisis")),
     }
     with open(os.path.join(RAIZ, "termometro.json"), "w", encoding="utf-8") as f:
         json.dump(t, f, ensure_ascii=False)
