@@ -21,7 +21,7 @@ H = json.load(open(os.path.join(RAIZ, "historico.json"), encoding="utf-8"))
 TCOMP = [("conv", "Conversación", 35, "#2c8466"), ("tasa", "Tasa de interacción", 20, "#2e5d8c"),
          ("const", "Constancia", 15, "#b0732a"), ("video", "Alcance en video", 15, "#8f4ba6"),
          ("aud", "Audiencia", 15, "#4a7d9a")]
-COLS = ["#2e5d8c", "#c0462f", "#2c8466", "#b0732a", "#8f4ba6", "#4a7d9a"]
+COLS = ["#2e5d8c", "#c0462f", "#2c8466", "#b0732a", "#8f4ba6", "#4a7d9a", "#7d7a2a"]
 HNOM = {"A": "Alcaldía", "C": "Concejo", "G": "Gobernación", "S": "Asamblea"}
 DNAME = {"VALLE": "Valle del Cauca", "RISARALDA": "Risaralda", "QUINDIO": "Quindío", "CHOCO": "Chocó"}
 SMALL = {"de", "del", "la", "las", "el", "los", "y", "por", "para", "en", "con", "a", "al", "e"}
