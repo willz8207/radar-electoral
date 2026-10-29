@@ -1398,11 +1398,36 @@ function renderHist(){
 Object.assign(hv,{tDepto:"Risaralda",tMuni:"Pereira",zYear:"2023",zCorp:"A",zBy:"comuna",dYear:"2023",dCorp:"G"});
 let hfe=null, hfBy="comuna", zSeq=0;
 const PC=new Map();
+const MC=new Map();
+function loadM(mi){ if(!MC.has(mi)) MC.set(mi,fetch(`mesas/${mi}.json`).then(r=>r.ok?r.json():null).catch(()=>null)); return MC.get(mi); }
+async function mesaSection(mk){
+  const [mi,loc,y,c,id]=mk.split("|"), box=document.getElementById(id+"-m"); if(!box) return;
+  box.innerHTML='<p class="small muted">Cargando mesas…</p>'; box.scrollIntoView({behavior:"smooth",block:"nearest"});
+  const [d,m]=await Promise.all([loadP(+mi),loadM(+mi)]);
+  if(!d||!m){ box.innerHTML='<p class="small muted">No hay datos mesa a mesa para este municipio.</p>'; return; }
+  const ci="ACGS".indexOf(c), L=+loc, pu=d.p[L], Z=new Map(), useParty=(c==="C"||c==="S");
+  const z0=k=>{ if(!Z.has(k)) Z.set(k,{label:"Mesa "+k,sub:"",mesas:0,val:0,cand:new Map(),party:new Map(),bl:0,nu:0,nm:0}); return Z.get(k); };
+  m.r.forEach(([pl,cc,p,n,mv])=>{ if(pl!==L||cc!==ci) return;
+    for(let i=0;i<mv.length;i+=2){ const z=z0(mv[i]), v=mv[i+1];
+      if(p<0){ if(n===0){ z.val+=v; z.bl+=v; } else if(n===1) z.nu+=v; else z.nm+=v; continue; }
+      z.val+=v; z.party.set(p,(z.party.get(p)||0)+v); if(!isLista(p,n)) z.cand.set(n,(z.cand.get(n)||0)+v); } });
+  const zs=[...Z.values()].filter(z=>z.val>0).sort((a,b)=>(+a.label.slice(5))-(+b.label.slice(5)));
+  zs.forEach(z=>{ z.sub=[z.bl?fmt(z.bl)+" en blanco":"",z.nu?fmt(z.nu)+" nulos":"",z.nm?fmt(z.nm)+" no marcados":""].filter(Boolean).join(" · "); });
+  if(!zs.length){ box.innerHTML='<p class="small muted">Sin votos registrados para esta corporación en el puesto.</p>'; return; }
+  const totals=new Map(); zs.forEach(z=>(useParty?z.party:z.cand).forEach((v,k)=>totals.set(k,(totals.get(k)||0)+v)));
+  const cols=[...totals].sort((a,b)=>b[1]-a[1]).slice(0,useParty?8:6).map(x=>x[0]);
+  box.innerHTML=`<div style="display:flex;flex-direction:column;gap:6px;margin-top:14px;padding-top:12px;border-top:2px solid var(--accent)">
+    <div class="row" style="justify-content:space-between"><h3 style="margin:0">Mesa a mesa · ${esc(tc(pu[3]))} · ${y}</h3><button class="btn sm ghost" data-hmesaclose="${esc(id)}">Cerrar</button></div>
+    <p class="small muted" style="margin:0">${zs.length} mesas con votos. Porcentaje de los votos válidos de cada mesa; en negrilla, el más votado. Las mesas agrupan votantes por orden de cédula dentro del puesto, no por barrio.</p>
+    ${heatTable(zs,cols,k=>useParty?esc(pname(k)):candBtn(k),useParty).replace("<th>Zona</th>","<th>Mesa</th>")}</div>`;
+}
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-hmesa]"); if(b){ mesaSection(b.dataset.hmesa); return; }
+  const x=e.target.closest&&e.target.closest("[data-hmesaclose]"); if(x){ const el=document.getElementById(x.dataset.hmesaclose+"-m"); if(el) el.innerHTML=""; } });
 function loadP(mi){ if(!PC.has(mi)) PC.set(mi,fetch(`puestos/${mi}.json`).then(r=>r.ok?r.json():null).catch(()=>null)); return PC.get(mi); }
 function zonas(d,y,c,by){
   const ci="ACGS".indexOf(c), Z=new Map(), cm=p=>String(p[4]).replace(/^\d+\s*(?=\D)/,"").trim(), key=(p,i)=>by==="comuna"?cm(p):String(i);
   d.p.forEach((p,i)=>{ if(p[0]!==y) return; const k=key(p,i);
-    if(!Z.has(k)) Z.set(k,{label:by==="comuna"?tc(cm(p)):tc(p[3]),sub:by==="comuna"?"":tc(cm(p)),mesas:0,np:0,val:0,cand:new Map(),party:new Map()});
+    if(!Z.has(k)) Z.set(k,{key:k,label:by==="comuna"?tc(cm(p)):tc(p[3]),sub:by==="comuna"?"":tc(cm(p)),mesas:0,np:0,val:0,cand:new Map(),party:new Map()});
     const z=Z.get(k); z.mesas+=p[5]; z.np++; });
   d.r.forEach(([pl,cc,p,n,v])=>{ if(cc!==ci) return; const pp=d.p[pl]; if(pp[0]!==y) return; const z=Z.get(key(pp,pl)); if(!z) return;
     if(p<0){ if(n===0) z.val+=v; return; }
@@ -1413,11 +1438,11 @@ const candBtn=k=>`<button class="btn sm ghost" style="padding:0;color:inherit;te
 function heatTable(zs,cols,colLabel,useParty){
   const get=(z,k)=>(useParty?z.party:z.cand).get(k)||0;
   const totVal=zs.reduce((a,z)=>a+z.val,0), totM=new Map(cols.map(k=>[k,zs.reduce((a,z)=>a+get(z,k),0)]));
-  const row=(label,sub,val,g,strong)=>{ const vs=cols.map(g), mx=Math.max(...vs);
-    return `<tr${strong?' style="font-weight:700"':""}><td style="text-align:left;white-space:normal;min-width:11rem">${esc(label)}${sub?`<br><span class="small muted" style="font-weight:400">${esc(sub)}</span>`:""}</td>${vs.map(v=>{ const sh=val?v/val:0;
+  const row=(label,sub,val,g,strong,mk)=>{ const vs=cols.map(g), mx=Math.max(...vs);
+    return `<tr${strong?' style="font-weight:700"':""}><td style="text-align:left;white-space:normal;min-width:11rem">${mk?`<button class="btn sm ghost" style="padding:0;color:var(--accent);text-align:left;font:inherit;font-weight:600;text-transform:none;letter-spacing:0" data-hmesa="${esc(mk)}" title="Ver mesa a mesa">${esc(label)} ›</button>`:esc(label)}${sub?`<br><span class="small muted" style="font-weight:400">${esc(sub)}</span>`:""}</td>${vs.map(v=>{ const sh=val?v/val:0;
       return `<td class="num" style="background:color-mix(in srgb,var(--accent) ${Math.round(sh*55)}%,transparent)${v===mx&&v>0?";font-weight:700":""}" title="${fmt(v)} votos">${pct(sh)}</td>`; }).join("")}<td class="num">${fmt(val)}</td></tr>`; };
   return `<div class="tbl-wrap tbl-scroll" style="max-height:560px"><table><thead><tr><th>Zona</th>${cols.map(k=>`<th style="white-space:normal;min-width:7.5rem;text-align:right">${colLabel(k)}</th>`).join("")}<th>Votos válidos</th></tr></thead><tbody>
-    ${row("Total","",totVal,k=>totM.get(k),true)}${zs.map(z=>row(z.label,[z.sub,z.mesas?z.mesas+" mesas":""].filter(Boolean).join(" · "),z.val,k=>get(z,k),false)).join("")}</tbody></table></div>`;
+    ${row("Total","",totVal,k=>totM.get(k),true)}${zs.map(z=>row(z.label,[z.sub,z.mesas?z.mesas+" mesas":""].filter(Boolean).join(" · "),z.val,k=>get(z,k),false,z.mk)).join("")}</tbody></table></div>`;
 }
 function zonaSection(mi,y,c,by){
   const id="z"+(++zSeq);
@@ -1428,7 +1453,8 @@ function zonaSection(mi,y,c,by){
     zs.forEach(z=>(useParty?z.party:z.cand).forEach((v,k)=>totals.set(k,(totals.get(k)||0)+v)));
     const cols=[...totals].sort((a,b)=>b[1]-a[1]).slice(0,useParty?8:6).map(x=>x[0]);
     zs.sort(by==="comuna"?(a,b)=>a.label.localeCompare(b.label,"es",{numeric:true}):(a,b)=>a.sub.localeCompare(b.sub,"es",{numeric:true})||b.val-a.val);
-    el.innerHTML=heatTable(zs,cols,k=>useParty?esc(pname(k)):candBtn(k),useParty); });
+    if(by==="puesto") zs.forEach(z=>{ z.mk=`${mi}|${z.key}|${y}|${c}|${id}`; });
+    el.innerHTML=(by==="puesto"?`<p class="small muted" style="margin:0 0 6px">Toca el nombre de un puesto para ver sus resultados mesa a mesa.</p>`:"")+heatTable(zs,cols,k=>useParty?esc(pname(k)):candBtn(k),useParty)+`<div id="${id}-m"></div>`; });
   return `<div id="${id}"><p class="small muted">Cargando puestos de votación…</p></div>`;
 }
 const bySeg=()=>`<div class="seg" role="group" aria-label="Agrupar">${[["comuna","Por comuna"],["puesto","Por puesto de votación"]].map(([b,t])=>`<button data-hzby="${b}" aria-pressed="${hv.zBy===b}">${t}</button>`).join("")}</div>`;
