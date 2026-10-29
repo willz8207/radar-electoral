@@ -1107,7 +1107,12 @@ function renderHContienda(){
   if(ra&&rb&&hv.yA!==hv.yB){ const a=new Map(),b=new Map(),sa=new Map(),sb=new Map(); famAcc(ra,a,sa); famAcc(rb,b,sb);
     const cs=(rb.tipo==="C"||rb.tipo==="S");
     fam=`<div class="sheet pad" style="display:flex;flex-direction:column;gap:6px"><h3>Cambio por familia política, ${hv.yA} → ${hv.yB}</h3><p class="small muted" style="margin:0">Participación sobre los votos por partidos y candidatos en esta contienda.</p>${famBars(a,b,cs?sa:null,cs?sb:null)}</div>`; }
-  $("#h-out").innerHTML=`<h3 style="font-size:1.3rem">${esc(titulo)}</h3>${hTimeline()}<div class="hgrid">${hCard(hv.yA)}${hv.yB!==hv.yA?hCard(hv.yB):""}</div>${fuerzaContienda()}${fam}`;
+  const miP=LOCAL(hv.cargo)?midx[DKEY[hv.depto]+"|"+hv.muni]:(hv.gmuni?midx[DKEY[hv.depto]+"|"+hv.gmuni]:null), conP=(hv.yB==="2019"||hv.yB==="2023")&&miP!=null&&H.pmun.includes(miP);
+  const grande=conP&&CAPITALES.has(H.munis[miP][1]);
+  const barraPDF=`<div class="sheet pad row" style="justify-content:space-between;gap:10px;align-items:center"><span class="small">Informe en PDF de esta contienda en <b>${hv.yB}</b>: resultados, trayectoria${conP?", comunas y puestos de votación":(LOCAL(hv.cargo)?"":", municipios")}.</span>
+    <div class="row" style="gap:10px;align-items:center">${conP?`<label class="chk small"><input type="checkbox" id="hpdf-mesas"${grande?"":" checked"}> Incluir mesa a mesa${grande?" (muchas páginas en esta ciudad)":""}</label>`:""}<button class="btn primary" data-hpdf="contienda">Informe PDF</button></div>
+    <p class="small muted" id="hpdf-st" style="margin:0;flex-basis:100%" aria-live="polite"></p></div>`;
+  $("#h-out").innerHTML=`<h3 style="font-size:1.3rem">${esc(titulo)}</h3>${barraPDF}${hTimeline()}<div class="hgrid">${hCard(hv.yA)}${hv.yB!==hv.yA?hCard(hv.yB):""}</div>${fuerzaContienda()}${fam}`;
 }
 function hTimeline(ctx=hv,titulo="Trayectoria 2003–2023"){
   const rows=H.years.map(y=>({y,r:hGet(y,ctx.cargo,ctx.depto,ctx.muni,ctx.gmuni)})).filter(x=>x.r);
@@ -1307,7 +1312,7 @@ function renderHCandOut(){
     <p class="small muted" style="margin:0">El cambio compara la última contienda con la anterior del mismo candidato dentro de los filtros. Los votos a alcaldía, concejo, gobernación y asamblea no son directamente comparables entre sí: para ver crecimiento real, filtra por un solo cargo.</p></div>`;
   $("#h-out").innerHTML=html;
 }
-function fichaCand(n){
+function fichaCand(n,sinFuerza){
   const es=nameIdx.get(n), wins=es.filter(e=>e.win).length, best=es.reduce((a,e)=>e.v>a.v?e:a,es[0]);
   const deps=new Set(es.map(e=>(e.code==="A"||e.code==="C")?H.munis[e.terr][0]:e.terr));
   const W=Math.max(420,es.length*92), Ht=230, L=50, B=44, T=22, mx=Math.max(...es.map(e=>e.v))||1;
@@ -1323,12 +1328,12 @@ function fichaCand(n){
     return `<tr><td class="num"><b>${e.y}</b></td><td>${HNOM[e.code]}</td><td style="text-align:left">${esc(terrNom(e.code,e.terr))}</td><td class="pn">${pcell(e.p)}</td><td class="num">${fmt(e.v)}</td><td class="num">${e.pct!=null?pct(e.pct):""}</td><td class="num">${e.rank} de ${e.ncand}</td><td style="text-align:left" class="${e.win?"res-ok":"muted"}">${e.res}</td><td class="num small">${prev?cambio(prev,e):'<span class="muted">primera vez</span>'}</td><td><button class="btn sm" data-hcont="${e.key}">Ver contienda</button></td></tr>`; }).join("");
   const famsU=[...new Set(es.map(e=>famOf(e.p)))];
   return `<div class="sheet pad" style="display:flex;flex-direction:column;gap:12px;border-color:var(--accent)">
-    <div class="row" style="justify-content:space-between;align-items:flex-start"><div><span class="label">Ficha del candidato</span><h3 style="font-size:1.4rem">${esc(nname(n))}</h3></div><button class="btn sm ghost" data-hclose="1">Cerrar ficha ✕</button></div>
+    <div class="row" style="justify-content:space-between;align-items:flex-start"><div><span class="label">Ficha del candidato</span><h3 style="font-size:1.4rem">${esc(nname(n))}</h3></div><div class="row" style="gap:8px;align-items:center"><span class="small muted" id="hpdf-st-c" aria-live="polite"></span><button class="btn sm primary" data-hpdf="${n}" title="Ficha, puestos de votación y mesa a mesa de cada elección">Informe PDF</button><button class="btn sm ghost" data-hclose="1">Cerrar ficha ✕</button></div></div>
     <div class="mini"><div><span class="label">Elecciones</span><span class="v">${es.length}</span></div><div><span class="label">Llegó</span><span class="v">${wins} de ${es.length}</span></div><div><span class="label">Mejor votación</span><span class="v">${fmt(best.v)} (${best.y})</span></div><div><span class="label">Primera → última</span><span class="v">${es[0].y} → ${es[es.length-1].y}</span></div><div><span class="label">Partidos</span><span class="v">${famsU.length}</span></div></div>
     <div class="chart" style="overflow-x:auto"><svg viewBox="0 0 ${W} ${Ht}" style="width:100%;max-width:${W}px;min-width:${Math.min(W,560)}px" role="img" aria-label="Votos por elección">${g}</svg></div>
     <div class="legend"><span><i style="background:var(--muted)"></i>Llegó al cargo</span><span><i style="background:var(--muted);opacity:.4"></i>No llegó</span><span>El color de cada barra es la familia política con la que compitió.</span></div>
     <div class="tbl-wrap"><table><thead><tr><th>Año</th><th>Cargo</th><th>Territorio</th><th>Partido</th><th>Votos</th><th>%</th><th>Puesto</th><th>Resultado</th><th>Cambio vs. misma corporación</th><th></th></tr></thead><tbody>${filas}</tbody></table></div>
-    <div style="border-top:1px solid var(--rule-2);padding-top:12px;display:flex;flex-direction:column;gap:8px">${fuerzaCand(n)}</div>
+    ${sinFuerza?"":`<div style="border-top:1px solid var(--rule-2);padding-top:12px;display:flex;flex-direction:column;gap:8px">${fuerzaCand(n)}</div>`}
     ${deps.size>1?'<p class="note" style="margin:0">Este nombre aparece en más de un departamento: puede tratarse de personas distintas con el mismo nombre.</p>':""}
   </div>`;
 }
@@ -1527,7 +1532,7 @@ function rankTable(rows,total,uno,varios){
   rows.sort((a,b)=>b.v-a.v); let acc=0, half=0;
   rows.forEach((r,i)=>{ acc+=r.v; if(!half&&acc>=total/2) half=i+1; });
   const shMax=Math.max(...rows.map(r=>r.sh),0.01), best=rows.slice().sort((a,b)=>b.sh-a.sh)[0];
-  return `<p class="small" style="margin:0">Obtuvo votos en <b>${rows.length} ${rows.length===1?uno:varios}</b>. La mitad de su votación salió de <b>${half} ${half===1?uno:varios}</b>. Donde más pesa: <b>${esc(best.label)}</b>, con ${pct(best.sh)} de los votos válidos.</p>
+  return `<p class="small" style="margin:0">Obtuvo votos en <b>${rows.length} ${rows.length===1?uno:varios}</b>.${half?` La mitad de su votación salió de <b>${half} ${half===1?uno:varios}</b>.`:""} Donde más pesa: <b>${esc(best.label)}</b>, con ${pct(best.sh)} de los votos válidos.</p>
     <div class="tbl-wrap tbl-scroll"><table><thead><tr><th>#</th><th style="text-align:left">${uno[0].toUpperCase()+uno.slice(1)}</th><th>Votos</th><th>% de su votación</th><th>% de los votos del lugar</th><th style="text-align:left">Fuerza en el lugar</th></tr></thead><tbody>
     ${rows.map((r,i)=>`<tr><td class="num">${i+1}</td><td style="text-align:left;white-space:normal;min-width:10rem">${esc(r.label)}${r.sub?`<br><span class="small muted">${esc(r.sub)}</span>`:""}</td><td class="num">${fmt(r.v)}</td><td class="num">${pct(r.v/(total||1))}</td><td class="num">${pct(r.sh)}</td><td style="min-width:8rem"><div class="sbar" style="min-width:6rem"><i style="width:${r.sh/shMax*100}%;background:var(--accent)"></i></div></td></tr>`).join("")}
     </tbody></table></div>`;
@@ -1766,69 +1771,175 @@ function renderTermo(){
 /* Informe PDF del termómetro: se arma con lo que muestra la vista y se pagina en A4 */
 const PDF_LIBS=["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js","https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.12/dist/html2canvas-pro.min.js"];
 function cargarScript(src){ return new Promise((ok,ko)=>{ if(document.querySelector(`script[src="${src}"]`)) return ok(); const s=document.createElement("script"); s.src=src; s.onload=ok; s.onerror=()=>ko(new Error("No se pudo cargar "+src)); document.head.appendChild(s); }); }
-async function informePDF(){
-  const btn=$("#t-pdf"), st=$("#t-pdf-st");
-  if(tState!=="ok"||!$("#t-out .rank")){ st.textContent="No hay mediciones para generar el informe."; return; }
-  btn.disabled=true; st.textContent="Preparando el informe…";
+/* Motor PDF: arma bloques en una caja fuera de pantalla y los pagina en A4 */
+const CREDITOS=`<p class="small" style="margin:0;border-left:4px solid var(--accent);padding-left:10px"><b>William Andrés Muriel</b><br>Gobierno | Territorio | Tecnología<br>williamandresm@gmail.com · linkedin.com/in/willi-muriel</p>`;
+const fechaHoyTxt=()=>new Date().toLocaleDateString("es-CO",{day:"numeric",month:"long",year:"numeric"});
+function portadaHTML(etiqueta,titulo,sub,nota){
+  return `<div class="sheet pad" style="display:flex;flex-direction:column;gap:14px;border-top:6px solid var(--accent)">
+    <span class="label">${esc(etiqueta)}</span>
+    <h2 style="margin:0;font-size:2rem;line-height:1.1">${esc(titulo)}</h2>
+    ${sub?`<p style="margin:0">${esc(sub)}</p>`:""}
+    <p style="margin:0">Generado el ${esc(fechaHoyTxt())}</p>${CREDITOS}
+    ${nota?`<p class="small muted" style="margin:0">${nota}</p>`:""}</div>`;
+}
+const hoja=(titulo,cuerpo,nota)=>`<div class="sheet pad" style="display:flex;flex-direction:column;gap:8px">${titulo?`<h3>${esc(titulo)}</h3>`:""}${nota?`<p class="small muted" style="margin:0">${nota}</p>`:""}${cuerpo}</div>`;
+async function pdfDeBloques(bloquesHTML,fname,pieTxt,st,btn){
+  if(btn) btn.disabled=true; st.textContent="Preparando el informe…";
   const root=document.documentElement, temaPrevio=root.getAttribute("data-theme");
   const caja=document.createElement("div");
   try{
     for(const s of PDF_LIBS) await cargarScript(s);
     root.setAttribute("data-theme","light");
-    const nombreC=contiendaNom(...tCont.split("|")), fechaTxt=new Date().toLocaleDateString("es-CO",{day:"numeric",month:"long",year:"numeric"});
     caja.style.cssText="position:fixed;left:-10000px;top:0;width:820px;background:#fbfcf8;color:#1c2332;font-family:var(--f-body)";
-    caja.innerHTML=`<div class="sheet pad" style="display:flex;flex-direction:column;gap:14px;border-top:6px solid var(--accent)">
-      <span class="label">Radar Electoral 2027 · Informe del termómetro digital</span>
-      <h2 style="margin:0;font-size:2rem;line-height:1.1">${esc(nombreC)}</h2>
-      <p style="margin:0">Generado el ${esc(fechaTxt)}</p>
-      <p class="small" style="margin:0;border-left:4px solid var(--accent);padding-left:10px"><b>William Andrés Muriel</b><br>Gobierno | Territorio | Tecnología<br>williamandresm@gmail.com · linkedin.com/in/willi-muriel</p>
-      <p class="small muted" style="margin:0">Índice relativo de presencia y conversación digital en Facebook, Instagram y TikTok. No es una encuesta ni mide intención de voto (Ley 2494 de 2025).</p></div>`;
+    caja.innerHTML=bloquesHTML.map(b=>typeof b==="string"?b:"").join("");
+    bloquesHTML.forEach(b=>{ if(b instanceof Element){ caja.appendChild(b); } });
+    [...caja.children].forEach((c,i)=>{ if(i) c.style.marginTop="14px"; });
     document.body.appendChild(caja);
-    const out=$("#t-out");
-    for(const nodo of out.children){
-      if(nodo.matches("details,form,datalist")) continue;
-      if(nodo.classList.contains("deptos")){ for(const art of nodo.children){ const c=art.cloneNode(true); c.style.marginTop="14px"; caja.appendChild(c); } continue; }
-      const c=nodo.cloneNode(true); c.style.marginTop="14px"; caja.appendChild(c);
-    }
-    caja.querySelectorAll("button,input,select,form,datalist,.links").forEach(e=>e.remove());
+    caja.querySelectorAll("button,input,select,form,datalist,.links,[data-nopdf]").forEach(e=>{ if(e.matches("button")&&e.textContent.trim()&&!e.dataset.hmesaclose&&!e.dataset.hclose&&!e.dataset.hcont&&!e.dataset.hpdf){ const s=document.createElement("span"); s.innerHTML=e.innerHTML; s.style.cssText="font-weight:inherit"; e.replaceWith(s); } else e.remove(); });
     caja.querySelectorAll("details").forEach(d=>d.open=true);
-    caja.querySelectorAll(".tbl-wrap").forEach(t=>{ t.style.overflow="visible"; });
+    caja.querySelectorAll(".tbl-wrap,.tbl-scroll").forEach(t=>{ t.style.overflow="visible"; t.style.maxHeight="none"; });
     caja.querySelectorAll("table").forEach(t=>{ t.style.width="100%"; t.style.tableLayout="auto"; t.style.fontSize="11.5px"; });
     caja.querySelectorAll("th,td").forEach(c=>{ c.style.whiteSpace="normal"; c.style.minWidth="0"; c.style.padding="4px 5px"; });
-    // Los SVG se dibujan como imagen aparte: se fijan los colores calculados
+    caja.querySelectorAll("thead th").forEach(c=>{ c.style.position="static"; });
     caja.querySelectorAll("svg *").forEach(el=>{ const cs=getComputedStyle(el); ["fill","stroke"].forEach(p=>{ const v=el.getAttribute(p)||""; if(v.includes("var(")||el.style[p]) el.style[p]=cs[p]; }); if((el.getAttribute("fill")||"").includes("var(")) el.setAttribute("fill",cs.fill); if((el.getAttribute("stroke")||"").includes("var(")) el.setAttribute("stroke",cs.stroke); });
     if(document.fonts&&document.fonts.ready) await document.fonts.ready;
     const {jsPDF}=window.jspdf, doc=new jsPDF({unit:"mm",format:"a4"});
     const PW=210, PH=297, MX=12, MT=12, MB=16, AW=PW-2*MX, AH=PH-MT-MB;
     let y=MT, pag=1;
-    const pie=()=>{ doc.setFontSize(8); doc.setTextColor(91,100,116); doc.text(`Radar Electoral · ${nombreC} · William Andrés Muriel`,MX,PH-8); doc.text(`Página ${pag}`,PW-MX,PH-8,{align:"right"}); };
+    const pie=()=>{ doc.setFontSize(8); doc.setTextColor(91,100,116); doc.text(`Radar Electoral · ${pieTxt} · William Andrés Muriel`,MX,PH-8); doc.text(`Página ${pag}`,PW-MX,PH-8,{align:"right"}); };
     const bloques=[...caja.children];
     for(let i=0;i<bloques.length;i++){
       st.textContent=`Generando página ${pag}… (${i+1} de ${bloques.length} secciones)`;
       const cv=await html2canvas(bloques[i],{scale:2,backgroundColor:"#fbfcf8",logging:false,useCORS:true});
       const mmPx=AW/cv.width; let alto=cv.height*mmPx, desde=0;
       if(alto>AH-(y-MT)&&y>MT&&alto<=AH){ pie(); doc.addPage(); pag++; y=MT; }
+      // corta las tablas largas entre filas: posiciones de las filas en píxeles del lienzo
+      const top0=bloques[i].getBoundingClientRect().top, esc_=cv.height/bloques[i].getBoundingClientRect().height;
+      const cortes=[...bloques[i].querySelectorAll("tr,h3,.win,.mini")].map(r=>Math.round((r.getBoundingClientRect().top-top0)*esc_)).filter(v=>v>0).sort((a,b)=>a-b);
       while(desde<cv.height){
-        const cabe=Math.min(cv.height-desde,Math.floor((AH-(y-MT))/mmPx));
+        let cabe=Math.min(cv.height-desde,Math.floor((AH-(y-MT))/mmPx));
         if(cabe<40&&y>MT){ pie(); doc.addPage(); pag++; y=MT; continue; }
+        if(desde+cabe<cv.height){ const c=cortes.filter(v=>v>desde+cabe*0.5&&v<=desde+cabe).pop(); if(c) cabe=c-desde; }
         const trozo=document.createElement("canvas"); trozo.width=cv.width; trozo.height=cabe;
         trozo.getContext("2d").drawImage(cv,0,desde,cv.width,cabe,0,0,cv.width,cabe);
-        doc.addImage(trozo.toDataURL("image/jpeg",0.92),"JPEG",MX,y,AW,cabe*mmPx);
+        doc.addImage(trozo.toDataURL("image/jpeg",0.9),"JPEG",MX,y,AW,cabe*mmPx);
         desde+=cabe; y+=cabe*mmPx+4;
         if(desde<cv.height){ pie(); doc.addPage(); pag++; y=MT; }
       }
     }
     pie();
-    const blob=doc.output("blob"), fname=`Informe_Radar_Electoral_${tSlug(tCont)}_${hoy()}.pdf`;
+    const blob=doc.output("blob");
     const dl=window.claude&&window.claude.use?await claude.use("downloads"):null;
     if(dl){
       try{ await dl.save({filename:fname,data:blob}); st.textContent=`Informe listo: ${pag} páginas.`; }
       catch(e){ st.textContent=e&&e.code==="declined"?"Descarga cancelada.":"No se pudo guardar el archivo en esta vista."; }
     } else { doc.save(fname); st.textContent=`Informe listo: ${pag} páginas.`; }
   }catch(e){ console.error(e); st.textContent="No se pudo generar el informe: "+(e&&e.message||e); }
-  finally{ caja.remove(); if(temaPrevio==null) root.removeAttribute("data-theme"); else root.setAttribute("data-theme",temaPrevio); btn.disabled=false; }
+  finally{ caja.remove(); if(temaPrevio==null) root.removeAttribute("data-theme"); else root.setAttribute("data-theme",temaPrevio); if(btn) btn.disabled=false; }
+}
+async function informePDF(){
+  const btn=$("#t-pdf"), st=$("#t-pdf-st");
+  if(tState!=="ok"||!$("#t-out .rank")){ st.textContent="No hay mediciones para generar el informe."; return; }
+  const nombreC=contiendaNom(...tCont.split("|"));
+  const bloques=[portadaHTML("Radar Electoral 2027 · Informe del termómetro digital",nombreC,"","Índice relativo de presencia y conversación digital en Facebook, Instagram y TikTok. No es una encuesta ni mide intención de voto (Ley 2494 de 2025).")];
+  for(const nodo of $("#t-out").children){
+    if(nodo.matches("details,form,datalist")) continue;
+    if(nodo.classList.contains("deptos")){ for(const art of nodo.children) bloques.push(art.cloneNode(true)); continue; }
+    bloques.push(nodo.cloneNode(true));
+  }
+  await pdfDeBloques(bloques,`Informe_Radar_Electoral_${tSlug(tCont)}_${hoy()}.pdf`,nombreC,st,btn);
 }
 document.addEventListener("click",e=>{ if(e.target.closest&&e.target.closest("#t-pdf")) informePDF(); });
+
+/* Informes del histórico: por contienda y por candidato, con puestos y mesas */
+function mesaIndex(m,ci){ // loc -> Map(mesa -> zona)
+  const I=new Map();
+  m.r.forEach(([pl,cc,p,n,mv])=>{ if(cc!==ci) return; let P=I.get(pl); if(!P){ P=new Map(); I.set(pl,P); }
+    for(let i=0;i<mv.length;i+=2){ const k=mv[i], v=mv[i+1]; let z=P.get(k); if(!z){ z={label:"Mesa "+k,mesa:k,sub:"",mesas:0,val:0,cand:new Map(),party:new Map(),bl:0,nu:0,nm:0}; P.set(k,z); }
+      if(p<0){ if(n===0){ z.val+=v; z.bl+=v; } else if(n===1) z.nu+=v; else z.nm+=v; continue; }
+      z.val+=v; z.party.set(p,(z.party.get(p)||0)+v); if(!isLista(p,n)) z.cand.set(n,(z.cand.get(n)||0)+v); } });
+  I.forEach(P=>P.forEach(z=>{ z.sub=[z.bl?fmt(z.bl)+" en blanco":"",z.nu?fmt(z.nu)+" nulos":"",z.nm?fmt(z.nm)+" no marcados":""].filter(Boolean).join(" · "); }));
+  return I;
+}
+const colsDe=(zs,useParty)=>{ const t=new Map(); zs.forEach(z=>(useParty?z.party:z.cand).forEach((v,k)=>t.set(k,(t.get(k)||0)+v))); return [...t].sort((a,b)=>b[1]-a[1]).slice(0,useParty?8:6).map(x=>x[0]); };
+const NOTA_MESA="Las mesas agrupan votantes por orden de cédula dentro del puesto, no por barrio.";
+async function bloquesTerritorio(mi,y,code,conMesas,st){
+  const out=[], d=await loadP(mi); if(!d) return out;
+  const useParty=(code==="C"||code==="S"), lab=k=>useParty?esc(pname(k)):esc(nname(k));
+  const zC=zonas(d,y,code,"comuna").sort((a,b)=>a.label.localeCompare(b.label,"es",{numeric:true}));
+  const zP=zonas(d,y,code,"puesto").sort((a,b)=>a.sub.localeCompare(b.sub,"es",{numeric:true})||b.val-a.val);
+  if(!zP.length) return out;
+  const cols=colsDe(zP,useParty), muni=H.munis[mi][1];
+  if(zC.length>1) out.push(hoja(`${muni} · votación por comuna o corregimiento · ${y}`,heatTable(zC,cols,lab,useParty),"Porcentaje de los votos válidos de cada zona; en negrilla, el más votado."));
+  out.push(hoja(`${muni} · votación por puesto de votación · ${y}`,heatTable(zP,cols,lab,useParty),`${zP.length} puestos. Porcentaje de los votos válidos de cada puesto; en negrilla, el más votado.`));
+  if(conMesas){
+    st.textContent="Cargando mesas…"; const m=await loadM(mi); if(!m) return out;
+    const I=mesaIndex(m,"ACGS".indexOf(code));
+    out.push(hoja(`${muni} · mesa a mesa · ${y}`,"",`Una tabla por puesto de votación, con las mismas columnas que la tabla de puestos. ${NOTA_MESA}`));
+    zP.forEach(z=>{ const P=I.get(+z.key); if(!P) return; const zs=[...P.values()].filter(x=>x.val>0).sort((a,b)=>a.mesa-b.mesa); if(!zs.length) return;
+      out.push(hoja(`${z.label}${z.sub?" · "+z.sub:""}`,heatTable(zs,cols,lab,useParty).replace("<th>Zona</th>","<th>Mesa</th>"),`${zs.length} mesas · ${fmt(z.val)} votos válidos`)); });
+  }
+  return out;
+}
+function totalMesas(mi,y){ return loadP(mi).then(d=>d?d.p.filter(p=>p[0]===y).reduce((a,p)=>a+p[5],0):0); }
+async function informeContienda(btn){
+  const st=$("#hpdf-st"), conMesas=$("#hpdf-mesas")&&$("#hpdf-mesas").checked;
+  const local=LOCAL(hv.cargo), code=HCORP[hv.cargo], y=hv.yB;
+  const titulo=local?`${CARGOS[hv.cargo]} de ${hv.muni}`:`${CARGOS[hv.cargo]} de ${hv.depto}${hv.gmuni?" · votación en "+hv.gmuni:""}`;
+  st.textContent="Reuniendo datos…";
+  const bl=[portadaHTML("Radar Electoral 2027 · Informe de contienda",titulo,`Resultados ${y} y trayectoria 2003–2023`,"Fuente: Registraduría Nacional (2019 y 2023, resultados mesa a mesa) y CEDAE (2003–2015). En concejo y asamblea 2019 y 2023 las curules son estimadas con cifra repartidora.")];
+  const tl=hTimeline(); if(tl) bl.push(tl);
+  bl.push(hCard(y));
+  const mi=local?midx[DKEY[hv.depto]+"|"+hv.muni]:(hv.gmuni?midx[DKEY[hv.depto]+"|"+hv.gmuni]:null);
+  if(y==="2019"||y==="2023"){
+    if(mi!=null&&H.pmun.includes(mi)) bl.push(...await bloquesTerritorio(mi,y,code,conMesas,st));
+    else if(!local) bl.push(hoja(`¿En qué municipios fue más fuerte cada uno? · ${y}`,fuerzaHeat(hv.depto,code,y),"Porcentaje de los votos válidos de cada municipio. Para ver puestos y mesas, elige un municipio en “Ver votación en”."));
+  } else if(!local) bl.push(hoja(`¿En qué municipios fue más fuerte cada uno? · ${y}`,fuerzaHeat(hv.depto,code,y),"Porcentaje de los votos válidos de cada municipio."));
+  if(!(y==="2019"||y==="2023")) bl.push(hoja("Puestos y mesas","<p class='small' style='margin:0'>El detalle por puesto de votación y por mesa existe solo para 2019 y 2023. Elige uno de esos años en “con el año” para incluirlo.</p>"));
+  await pdfDeBloques(bl,`Informe_${nrm(titulo).replace(/[^A-Z0-9]+/g,"_")}_${y}.pdf`,titulo+" "+y,st,btn);
+}
+async function informeCandidato(n,btn){
+  const st=$("#hpdf-st-c")||$("#hpdf-st"); if(!nameIdx) buildNameIdx();
+  const es=nameIdx.get(n), nom=nname(n);
+  st.textContent="Reuniendo datos…";
+  const bl=[portadaHTML("Radar Electoral 2027 · Informe de candidato",nom,`${es.length} ${es.length===1?"elección":"elecciones"} entre ${es[0].y} y ${es[es.length-1].y}`,"Fuente: Registraduría Nacional (2019 y 2023, resultados mesa a mesa) y CEDAE (2003–2015).")];
+  bl.push(fichaCand(n,true));
+  for(const e of es){
+    const ci="ACGS".indexOf(e.code), terrTxt=terrNom(e.code,e.terr).split(",")[0], cab=`${e.y} · ${HNOM[e.code]} ${terrTxt}`;
+    if(e.code==="A"||e.code==="C"){
+      const mi=+e.terr; if(!((e.y==="2019"||e.y==="2023")&&H.pmun.includes(mi))) continue;
+      st.textContent=`Puestos y mesas · ${cab}…`;
+      const [d,m]=await Promise.all([loadP(mi),loadM(mi)]); if(!d) continue;
+      const zC=zonas(d,e.y,e.code,"comuna"), zP=zonas(d,e.y,e.code,"puesto");
+      const rows=zs=>zs.map(z=>({label:z.label,sub:z.sub,v:z.cand.get(n)||0,sh:z.val?(z.cand.get(n)||0)/z.val:0,key:z.key})).filter(r=>r.v>0);
+      if(zC.length>1) bl.push(hoja(`${cab} · por comuna o corregimiento`,rankTable(rows(zC),e.v,"comuna","comunas")));
+      const rP=rows(zP); bl.push(hoja(`${cab} · por puesto de votación`,rankTable(rP.slice(),e.v,"puesto","puestos")));
+      if(m){ const I=mesaIndex(m,ci), filas=[]; let nm=0;
+        rP.sort((a,b)=>b.v-a.v).forEach(r=>{ const P=I.get(+r.key); if(!P) return;
+          const ms=[...P.values()].filter(z=>z.cand.get(n)).sort((a,b)=>a.mesa-b.mesa); nm+=ms.length;
+          const mx=Math.max(...ms.map(z=>z.cand.get(n)/z.val));
+          filas.push(`<tr><td style="text-align:left;min-width:10rem"><b>${esc(r.label)}</b><br><span class="small muted">${esc(r.sub)}</span></td><td class="num">${fmt(r.v)}</td><td style="text-align:left;font-size:10.5px;line-height:1.5">${ms.map(z=>{ const v=z.cand.get(n), sh=v/z.val; return `<span style="display:inline-block;margin:0 6px 2px 0;padding:0 4px;border-radius:3px;background:color-mix(in srgb,var(--accent) ${Math.round(sh*60)}%,transparent)${sh===mx?";font-weight:700":""}">M${z.mesa}: ${fmt(v)} (${pct(sh,0)})</span>`; }).join("")}</td></tr>`); });
+        bl.push(hoja(`${cab} · mesa a mesa`,`<div class="tbl-wrap"><table><thead><tr><th style="text-align:left">Puesto</th><th>Votos</th><th style="text-align:left">Mesas: votos (% de los válidos de la mesa)</th></tr></thead><tbody>${filas.join("")}</tbody></table></div>`,`Obtuvo votos en ${fmt(nm)} mesas. Puestos ordenados de más a menos votos; en negrilla, su mejor mesa en cada puesto. ${NOTA_MESA}`)); }
+    } else {
+      const src=e.code==="G"?H.gm:H.sm, rM=[], munis=[];
+      H.munis.forEach(([dd,mm],mi)=>{ if(dd!==e.terr) return; munis.push(mi); const o=src[`${e.y}|${mi}`]; if(!o) return;
+        const r=o.k.find(x=>x[1]===n&&x[0]===e.p)||o.k.find(x=>x[1]===n); if(!r) return; const val=validos(o); rM.push({label:mm,sub:"",v:r[2],sh:val?r[2]/val:0}); });
+      bl.push(hoja(`${cab} · por municipio`,rankTable(rM,e.v,"municipio","municipios")));
+      if(!(e.y==="2019"||e.y==="2023")) continue;
+      const rP=[], top=[]; let k=0;
+      for(const mi of munis){ if(!H.pmun.includes(mi)) continue; st.textContent=`Puestos y mesas · ${cab} · ${++k} municipios…`;
+        const [d,m]=await Promise.all([loadP(mi),loadM(mi)]); if(!d) continue;
+        zonas(d,e.y,e.code,"puesto").forEach(z=>{ const v=z.cand.get(n)||0; if(v) rP.push({label:z.label,sub:H.munis[mi][1]+(z.sub?" · "+z.sub:""),v,sh:z.val?v/z.val:0}); });
+        if(m){ const I=mesaIndex(m,ci); I.forEach((P,loc)=>P.forEach(z=>{ const v=z.cand.get(n)||0; if(v) top.push({label:`${tc(d.p[loc][3])} · Mesa ${z.mesa}`,sub:H.munis[mi][1],v,sh:v/z.val}); })); } }
+      if(rP.length){ rP.sort((a,b)=>b.v-a.v); bl.push(hoja(`${cab} · los 150 puestos donde más votos sacó`,rankTable(rP.slice(0,150),e.v,"puesto","puestos"),`Obtuvo votos en ${fmt(rP.length)} puestos del departamento.`)); }
+      if(top.length){ top.sort((a,b)=>b.v-a.v); bl.push(hoja(`${cab} · las 150 mesas donde más votos sacó`,rankTable(top.slice(0,150),e.v,"mesa","mesas"),`Obtuvo votos en ${fmt(top.length)} mesas del departamento. ${NOTA_MESA}`)); }
+    }
+  }
+  await pdfDeBloques(bl,`Informe_${nrm(nom).replace(/[^A-Z0-9]+/g,"_")}.pdf`,nom,st,btn);
+}
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-hpdf]"); if(!b) return;
+  if(b.dataset.hpdf==="contienda") informeContienda(b); else informeCandidato(+b.dataset.hpdf,b); });
+
 /* Calculadora de apoyos */
 function apoyoInfo(a,depto){
   const h=histDe(a.histNombre||a.nombre); if(!h) return {a,v:0,e:null};
