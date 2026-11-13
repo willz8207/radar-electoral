@@ -229,6 +229,16 @@ td.wrap{white-space:normal;min-width:13rem;text-align:left;font-size:.78rem;colo
 .sbar{display:flex;height:12px;min-width:11rem;border-radius:2px;overflow:hidden;background:var(--rule-2);margin-bottom:3px}
 .sbar i{display:block;height:100%}
 @media (max-width:700px){.ante{grid-template-columns:minmax(0,1fr)}}
+/* Opinión */
+.oasp{display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px solid var(--rule-2)}
+.oasp:last-child{border-bottom:0}
+.otemas{display:flex;flex-direction:column;gap:2px}
+.ot{display:grid;grid-template-columns:minmax(0,1fr) minmax(6.5rem,12rem) minmax(0,1fr);gap:8px;align-items:center;padding:4px 0}
+.ot-l,.ot-r{display:flex;align-items:center;gap:6px;min-width:0}
+.ot-l{justify-content:flex-end}
+.ot-l i,.ot-r i{display:block;height:12px;border-radius:2px;min-width:0}
+.ot-n{text-align:center;font-size:.84rem;font-weight:600;line-height:1.25}
+.ot-n small{display:block;font-weight:400}
 .ante ol{margin:4px 0 0;padding-left:1.2rem;font-size:.86rem;display:flex;flex-direction:column;gap:2px}
 </style>
 
@@ -243,6 +253,7 @@ td.wrap{white-space:normal;min-width:13rem;text-align:left;font-size:.78rem;colo
       <a href="#candidatos" data-v="candidatos">Precandidatos</a>
       <a href="#comparar" data-v="comparar">Comparar</a>
       <a href="#termometro" data-v="termometro">Termómetro</a>
+      <a href="#opinion" data-v="opinion">Opinión</a>
       <a href="#historico" data-v="historico">Histórico</a>
     </nav>
     <div class="status">
@@ -339,6 +350,22 @@ td.wrap{white-space:normal;min-width:13rem;text-align:left;font-size:.78rem;colo
     </div>
     <p class="small muted" id="t-pdf-st" style="margin:0" aria-live="polite"></p>
     <div id="t-out" style="display:flex;flex-direction:column;gap:16px"></div>
+  </section>
+
+  <!-- OPINIÓN -->
+  <section class="view" id="v-opinion" hidden>
+    <div class="view-head">
+      <div>
+        <h2>Opinión en redes</h2>
+        <p>De qué hablan las personas en los comentarios de las publicaciones sobre cada aspirante, y si lo hacen a favor o en contra. Cada contienda se analiza por separado.</p>
+      </div>
+      <div class="row" style="gap:8px;align-items:flex-end">
+        <label class="field" style="min-width:220px"><span>Contienda</span><select id="o-cont"></select></label>
+        <label class="field" style="min-width:150px"><span>Periodo</span><select id="o-per"><option value="14">Últimos 14 días</option><option value="30">Últimos 30 días</option><option value="90">Últimos 90 días</option><option value="todo">Todo</option></select></label>
+      </div>
+    </div>
+    <div id="o-out" style="display:flex;flex-direction:column;gap:16px"></div>
+    <div id="o-form"></div>
   </section>
 
   <!-- HISTÓRICO -->
@@ -1627,20 +1654,22 @@ document.addEventListener("input",e=>{ if(e.target.id==="h-q"){ hv.q=e.target.va
 
 /* ---------- Termómetro digital ---------- */
 async function loadTermoEstatico(){
-  try{ const d=await (await fetch("termometro.json")).json(); segs=d.seguimiento||[]; meds=d.mediciones||[]; anas=d.analisis||[]; tState="ok";
+  try{ const d=await (await fetch("termometro.json")).json(); segs=d.seguimiento||[]; meds=d.mediciones||[]; anas=d.analisis||[]; opis=d.opinion||[]; tState="ok";
     if(d.actualizado) $("#st-store").innerHTML=`<span class="dot ok"></span>Versión de consulta · mediciones al ${esc(d.actualizado)}`; }
   catch(e){ tState="error"; }
   renderAll();
 }
-let segs=[], meds=[], anas=[], tState="cargando", tCont="", tUnsub=[];
+let segs=[], meds=[], anas=[], opis=[], tState="cargando", tCont="", tUnsub=[];
 const tSlug=k=>nrm(k).replace(/[^A-Z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase();
 const TCOMP=[{k:"conv",n:"Conversación",w:35,c:"var(--c-digital)"},{k:"tasa",n:"Tasa de interacción",w:20,c:"var(--c-base)"},{k:"const",n:"Constancia",w:15,c:"var(--c-musculo)"},{k:"video",n:"Alcance en video",w:15,c:"var(--c-medios)"},{k:"aud",n:"Audiencia",w:15,c:"var(--s6)"}];
 function initTermo(){
   if(tUnsub.length) return;
-  tUnsub.push(db.collection("seguimiento").onSnapshot(s=>{ segs=s.docs.map(d=>({id:d.id,...clone(d.data())})); tState="ok"; if(vista()==="termometro") renderTermo(); },()=>{ tState="error"; if(vista()==="termometro") renderTermo(); }));
-  tUnsub.push(db.collection("analisis").onSnapshot(s=>{ anas=s.docs.map(d=>({id:d.id,...clone(d.data())})); if(vista()==="termometro") renderTermo(); },()=>{}));
-  tUnsub.push(db.collection("mediciones").onSnapshot(s=>{ meds=s.docs.map(d=>({id:d.id,...clone(d.data())})); if(vista()==="termometro") renderTermo(); },()=>{}));
+  tUnsub.push(db.collection("seguimiento").onSnapshot(s=>{ segs=s.docs.map(d=>({id:d.id,...clone(d.data())})); tState="ok"; tRe(); },()=>{ tState="error"; tRe(); }));
+  tUnsub.push(db.collection("analisis").onSnapshot(s=>{ anas=s.docs.map(d=>({id:d.id,...clone(d.data())})); tRe(); },()=>{}));
+  tUnsub.push(db.collection("mediciones").onSnapshot(s=>{ meds=s.docs.map(d=>({id:d.id,...clone(d.data())})); tRe(); },()=>{}));
+  tUnsub.push(db.collection("opinion").onSnapshot(s=>{ opis=s.docs.map(d=>({id:d.id,...clone(d.data())})); tRe(); },()=>{}));
 }
+function tRe(){ const v=vista(); if(v==="termometro") renderTermo(); else if(v==="opinion") renderOpinion(); }
 const tKey=s=>[s.cargo,s.depto,s.municipio||""].join("|");
 const nz0=v=>+v||0;
 function tMetr(m){
@@ -1769,8 +1798,161 @@ function renderTermo(){
     ${tLine(fechas,idx.map(r=>({n:byId[r.id].nombre.split(" ").slice(-2).join(" "),c:colOf[r.id],v:fechas.map(f=>{ const x=porFecha(f).find(z=>z.id===r.id); return x?x.total:null; })})),true)}</div>`;
   const an=anas.find(a=>a.id===tSlug(tCont));
   const lectura=an?`<div class="sheet pad" style="display:flex;flex-direction:column;gap:8px;border-left:4px solid var(--accent)"><span class="label">Lectura de la contienda · ${esc(an.fecha||"")}</span><div class="ai-out" style="max-width:85ch">${esc(an.texto||"")}</div></div>`:"";
-  out.innerHTML=rank+lectura+evol+explica+tabla+curva+caudalHTML(S,[...idx.map(r=>r.id),...sinMed.map(s=>s.id)],colOf)+fichas+(ESTATICO?"":form)+(ESTATICO?"":apoyoDatalist(S))+`<p class="note">Método: interacciones de las publicaciones propias dentro de la ventana (sin colaboraciones de terceros). Tasa de interacción = interacciones por publicación ÷ seguidores, promediada entre Facebook e Instagram. El índice compara a los aspirantes entre sí con los pesos que ves en la leyenda; un aspirante sin cuenta en una red obtiene cero en ese componente.</p>`;
+  out.innerHTML=rank+lectura+evol+explica+tabla+curva+caudalHTML(S,[...idx.map(r=>r.id),...sinMed.map(s=>s.id)],colOf)+fichas+fuentesTermo(S,mUlt,ult,colOf)+(ESTATICO?"":form)+(ESTATICO?"":apoyoDatalist(S))+`<p class="note">Método: interacciones de las publicaciones propias dentro de la ventana (sin colaboraciones de terceros). Tasa de interacción = interacciones por publicación ÷ seguidores, promediada entre Facebook e Instagram. El índice compara a los aspirantes entre sí con los pesos que ves en la leyenda; un aspirante sin cuenta en una red obtiene cero en ese componente.</p>`;
 }
+/* Fuentes de la revisión del termómetro */
+function fuentesTermo(S,mUlt,ult,colOf){
+  const D=opis.filter(o=>o.contienda===tCont);
+  const nCom=id=>D.reduce((a,o)=>a+(o.resultados||[]).filter(r=>r.cand===id).reduce((x,r)=>x+nz0(r.favor)+nz0(r.contra)+nz0(r.neutro),0),0);
+  const lk=(t,u)=>`<a href="${esc(u)}" target="_blank" rel="noopener">${t}</a>`;
+  return `<div class="sheet pad" style="display:flex;flex-direction:column;gap:10px"><h3>Fuentes</h3>
+    <p class="small muted" style="margin:0">De dónde salen los datos de esta contienda. Las redes se consultan en sus perfiles públicos; no se usan datos privados ni se guarda quién comenta.</p>
+    <div class="tbl-wrap"><table><thead><tr><th>Aspirante</th><th style="text-align:left">Perfiles consultados</th><th style="text-align:left">Fuente de la medición</th><th>Comentarios analizados</th></tr></thead><tbody>
+    ${S.map(s=>{ const cu=s.cuentas||{}, m=mUlt[s.id];
+      const per=[cu.fb?lk("Facebook",cu.fb):"",cu.ig?lk("Instagram","https://www.instagram.com/"+cu.ig+"/"):"",cu.tt?lk("TikTok","https://www.tiktok.com/@"+cu.tt):"",lk("Biblioteca de Anuncios de Meta",`https://www.facebook.com/ads/library/?active_status=all&ad_type=political_and_issue_ads&country=CO&q=${encodeURIComponent('"'+s.nombre+'"')}&search_type=keyword_exact_phrase`)].filter(Boolean).join(" · ");
+      const n=nCom(s.id);
+      return `<tr><td style="text-align:left;white-space:normal;min-width:9rem"><span class="fdot" style="background:${colOf[s.id]}"></span>${esc(s.nombre)}</td><td style="text-align:left;white-space:normal;min-width:14rem">${per}</td>
+        <td style="text-align:left;white-space:normal;min-width:9rem">${m?`${esc(m.fuente||"Revisión con Claude")} · ${esc(m.fecha)}${m.ventana?` · últimos ${m.ventana} días`:""}`:'<span class="muted">Sin medición todavía</span>'}</td>
+        <td class="num">${n?`<a href="#opinion" data-gop="${esc(tCont)}">${fmt(n)}</a>`:"—"}</td></tr>`; }).join("")}
+    </tbody></table></div>
+    <p class="small" style="margin:0;max-width:85ch"><b>Otras fuentes.</b> Señales y apoyos: prensa regional, citada con el medio y la fecha en cada señal. Base electoral: Registraduría Nacional del Estado Civil (2019 y 2023, mesa a mesa) y CEDAE, Universidad de los Andes (2003–2015). Pauta: Biblioteca de Anuncios de Meta (Colombia, anuncios sobre temas sociales, elecciones o política, últimos 30 días). Opinión: comentarios públicos de las publicaciones listadas en la pestaña Opinión.</p></div>`;
+}
+
+/* ---------- Opinión: temas y tono de los comentarios ---------- */
+let oCont="", oCand="", oPer="30", oPrev=null;
+const OTONO={favor:{n:"A favor",c:"var(--ok)"},neutro:{n:"Neutro",c:"var(--rule)"},contra:{n:"En contra",c:"var(--bad)"}};
+const OTIPOS=["Página o perfil del aspirante","Grupo público","Página de noticias o medio","Página de ciudad o comunidad","Otra"];
+const ORED=["Facebook","Instagram","TikTok","X","YouTube","Otra"];
+const OTEMAS=["Seguridad","Empleo y economía","Corrupción","Gestión y experiencia","Obras y vías","Salud","Educación","Servicios públicos","Movilidad","Cercanía con la gente","Alianzas y padrinos políticos","Partido","Campaña y propaganda","Honestidad y confianza","Renovación","Otro"];
+const temaKey=t=>nrm(t||"").replace(/[^A-Z0-9]+/g," ").trim();
+const nCom=r=>nz0(r.favor)+nz0(r.contra)+nz0(r.neutro);
+function oFiltro(){
+  const S=segs.filter(s=>tKey(s)===oCont);
+  let lim=""; if(oPer!=="todo"){ const d=new Date(); d.setDate(d.getDate()-(+oPer)); lim=d.toISOString().slice(0,10); }
+  const D=opis.filter(o=>o.contienda===oCont&&(!lim||(o.fecha||"")>=lim)).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")||(b.id||"").localeCompare(a.id||""));
+  return {S,D};
+}
+function oAgg(D,cand){
+  const tono={favor:0,contra:0,neutro:0}, T=new Map();
+  D.forEach(o=>(o.resultados||[]).forEach(r=>{ if(cand&&r.cand!==cand) return;
+    Object.keys(tono).forEach(k=>tono[k]+=nz0(r[k]));
+    (r.temas||[]).forEach(t=>{ const k=temaKey(t.tema); if(!k) return; const x=T.get(k)||{tema:t.tema,favor:0,contra:0,neutro:0}; x[OTONO[t.tono]?t.tono:"neutro"]+=nz0(t.n)||1; T.set(k,x); }); }));
+  return {tono,tot:tono.favor+tono.contra+tono.neutro,temas:[...T.values()].map(x=>({...x,tot:x.favor+x.contra+x.neutro})).sort((a,b)=>b.tot-a.tot)};
+}
+const tonoBar=t=>{ const tot=t.favor+t.contra+t.neutro||1, p=k=>t[k]/tot*100;
+  return `<div class="tono" title="A favor ${fmt(p("favor"),0)} %, neutro ${fmt(p("neutro"),0)} %, en contra ${fmt(p("contra"),0)} %"><i style="width:${p("favor")}%;background:var(--ok)"></i><i style="width:${p("neutro")}%;background:var(--rule)"></i><i style="width:${p("contra")}%;background:var(--bad)"></i></div>
+    <div class="row small" style="gap:4px 14px"><span><b class="num" style="color:var(--ok)">${fmt(p("favor"),0)} %</b> a favor</span><span><b class="num">${fmt(p("neutro"),0)} %</b> neutro</span><span><b class="num" style="color:var(--bad)">${fmt(p("contra"),0)} %</b> en contra</span></div>`; };
+function renderOpinion(){
+  const out=$("#o-out"), sel=$("#o-cont");
+  $("#o-per").value=oPer;
+  if(tState==="sin-db"){ sel.innerHTML=""; out.innerHTML=`<div class="sheet empty"><h3>La opinión necesita el almacenamiento de la app</h3><p>Abre la app desde claude.ai con tu cuenta para ver los análisis guardados.</p></div>`; return; }
+  if(tState!=="ok"){ out.innerHTML=`<div class="sheet empty"><h3>Cargando análisis…</h3></div>`; return; }
+  if(!segs.length){ sel.innerHTML=""; out.innerHTML=`<div class="sheet empty"><h3>Aún no hay aspirantes en seguimiento</h3><p>Agrega aspirantes a una contienda para analizar los comentarios sobre ellos.</p></div>`; return; }
+  const conts=[...new Set(segs.map(tKey))];
+  if(!conts.includes(oCont)) oCont=conts.includes(tCont)?tCont:conts[0];
+  sel.innerHTML=conts.map(k=>{ const [c,d,m]=k.split("|"); return `<option value="${esc(k)}"${k===oCont?" selected":""}>${esc(contiendaNom(c,d,m))}</option>`; }).join("");
+  const {S,D}=oFiltro(), byId=Object.fromEntries(S.map(s=>[s.id,s])), colOf=Object.fromEntries(S.map((s,i)=>[s.id,SERIES[i%SERIES.length]]));
+  if(oCand&&!byId[oCand]) oCand="";
+  const fw=$("#o-form"); if(ESTATICO) fw.innerHTML=""; else if(fw.dataset.c!==oCont){ fw.innerHTML=oFormHTML(S); fw.dataset.c=oCont; }
+  if(!D.length){ out.innerHTML=`<div class="sheet empty"><h3>Aún no hay comentarios analizados${oPer!=="todo"?" en este periodo":""}</h3><p>${oPer!=="todo"&&opis.some(o=>o.contienda===oCont)?"Cambia el periodo a «Todo» para ver análisis anteriores.":"Los comentarios se analizan en cada revisión de redes (lunes y jueves) y también puedes pegarlos tú abajo."}</p></div>`; return; }
+  const tot=D.reduce((a,o)=>a+nz0(o.analizados),0);
+  const kpis=`<div class="kpis">${[["Comentarios analizados",fmt(tot)],["Publicaciones revisadas",fmt(D.length)],["Fuentes distintas",fmt(new Set(D.map(o=>(o.fuente||{}).url||(o.fuente||{}).nombre||o.id)).size)],["Última revisión",D[0].fecha||"—"]].map(([l,v])=>`<div class="kpi"><span class="label">${l}</span><span class="v">${esc(v)}</span></div>`).join("")}</div>`;
+  const F=S.map(s=>({s,a:oAgg(D,s.id)})), con=F.filter(f=>f.a.tot>0).sort((a,b)=>b.a.tot-a.a.tot), sin=F.filter(f=>!f.a.tot), totM=con.reduce((a,f)=>a+f.a.tot,0)||1;
+  const leg=`<div class="legend">${Object.values(OTONO).map(t=>`<span><i style="background:${t.c}"></i>${t.n}</span>`).join("")}</div>`;
+  const tono=`<div class="sheet pad" style="display:flex;flex-direction:column;gap:6px"><div class="row" style="justify-content:space-between"><h3>Tono por aspirante</h3>${leg}</div>
+    <p class="small muted" style="margin:0">Comentarios que hablan de cada aspirante y en qué sentido. La presencia es la parte de esos comentarios que lo mencionan dentro de la contienda.</p>
+    ${con.map(f=>{ const fav=f.a.temas.filter(x=>x.favor>x.contra).sort((a,b)=>b.favor-a.favor).slice(0,3), cn=f.a.temas.filter(x=>x.contra>x.favor).sort((a,b)=>b.contra-a.contra).slice(0,3);
+      return `<div class="oasp"><div class="row" style="justify-content:space-between"><b><span class="fdot" style="background:${colOf[f.s.id]}"></span>${esc(f.s.nombre)}</b><span class="small muted"><span class="mono">${fmt(f.a.tot)}</span> comentarios · <span class="mono">${pct(f.a.tot/totM,0)}</span> de presencia</span></div>
+        ${tonoBar(f.a.tono)}
+        ${fav.length||cn.length?`<div class="row small" style="gap:6px">${fav.length?`<span class="muted">Le suma:</span>${fav.map(x=>`<span class="pill ok">${esc(x.tema)} · ${fmt(x.favor)}</span>`).join("")}`:""}${cn.length?`<span class="muted"${fav.length?' style="margin-left:6px"':""}>Le resta:</span>${cn.map(x=>`<span class="pill warn">${esc(x.tema)} · ${fmt(x.contra)}</span>`).join("")}`:""}</div>`:""}</div>`; }).join("")}
+    ${sin.length?`<p class="small muted" style="margin:6px 0 0">Sin comentarios sobre ${sin.map(f=>esc(f.s.nombre)).join(", ")} en este periodo.</p>`:""}</div>`;
+  const A=oAgg(D,oCand), top=A.temas.slice(0,12), mx=Math.max(1,...top.map(x=>Math.max(x.favor,x.contra)));
+  const temas=`<div class="sheet pad" style="display:flex;flex-direction:column;gap:10px">
+    <div class="row" style="justify-content:space-between;align-items:flex-end"><h3>Temas de la conversación</h3><label class="field" style="min-width:220px"><span>Aspirante</span><select id="o-cand"><option value="">Todos los aspirantes</option>${S.map(s=>`<option value="${esc(s.id)}"${s.id===oCand?" selected":""}>${esc(s.nombre)}</option>`).join("")}</select></label></div>
+    <p class="small muted" style="margin:0">De qué hablan las personas en los comentarios. A la izquierda, las menciones en contra; a la derecha, las menciones a favor. Debajo de cada tema, las neutras.</p>
+    ${top.length?`<div class="otemas"><div class="ot small muted" style="padding-bottom:0"><span style="text-align:right">En contra</span><span></span><span>A favor</span></div>${top.map(x=>`<div class="ot"><div class="ot-l"><span class="mono small">${x.contra?fmt(x.contra):""}</span><i style="width:${x.contra/mx*100}%;background:var(--bad)"></i></div><span class="ot-n">${esc(x.tema)}${x.neutro?`<small class="muted">${fmt(x.neutro)} neutras</small>`:""}</span><div class="ot-r"><i style="width:${x.favor/mx*100}%;background:var(--ok)"></i><span class="mono small">${x.favor?fmt(x.favor):""}</span></div></div>`).join("")}</div>`:'<p class="small muted" style="margin:0">Sin temas para este aspirante en el periodo.</p>'}</div>`;
+  const rd=(o)=>(o.resultados||[]).filter(r=>byId[r.cand]&&nCom(r)).map(r=>esc(byId[r.cand].nombre)).join(", ")||"—";
+  const fuentes=`<div class="sheet pad" style="display:flex;flex-direction:column;gap:10px"><h3>Fuentes</h3>
+    <p class="small muted" style="margin:0">Publicaciones cuyos comentarios se analizaron. Se guardan solo los temas y el tono: no se guardan los comentarios ni los nombres de quienes comentan. Tampoco se desglosan las reacciones (me gusta, me divierte, me enoja…).</p>
+    <div class="tbl-wrap"><table><thead><tr><th>Revisión</th><th style="text-align:left">Fuente</th><th>Publicada</th><th>Comentarios</th><th style="text-align:left">Aspirantes mencionados</th><th style="text-align:left">Lo que dicen</th><th style="text-align:left">Origen</th>${ESTATICO?"":"<th></th>"}</tr></thead><tbody>
+    ${D.map(o=>{ const f=o.fuente||{};
+      return `<tr><td class="num">${esc(o.fecha||"")}</td><td style="text-align:left;white-space:normal;min-width:12rem">${f.url?`<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.nombre||f.url)}</a>`:esc(f.nombre||"—")}<br><span class="small muted">${esc([f.red,f.tipo].filter(Boolean).join(" · "))}</span></td>
+        <td class="num">${esc(f.fechaPub||"—")}</td><td class="num">${fmt(nz0(o.analizados))}</td><td style="text-align:left;white-space:normal;min-width:9rem">${rd(o)}</td>
+        <td style="text-align:left;white-space:normal;min-width:16rem" class="small">${esc(o.resumen||"")}</td><td style="text-align:left" class="small">${esc(o.origen||"")}</td>
+        ${ESTATICO?"":`<td><button class="btn sm ghost" data-odel="${esc(o.id)}" aria-label="Eliminar este análisis">✕</button></td>`}</tr>`; }).join("")}
+    </tbody></table></div></div>`;
+  out.innerHTML=kpis+tono+temas+fuentes+`<p class="note">Método: cada comentario se asigna al aspirante del que habla, a un tema y a un tono (a favor, en contra o neutro). Los comentarios que no hablan de ningún aspirante se cuentan como analizados pero no se clasifican. Es una lectura de la conversación pública en las publicaciones revisadas, no una encuesta ni mide intención de voto. Las contiendas nunca se suman entre sí.</p>`;
+}
+function oFormHTML(S){
+  return `<details class="sheet pad" id="of-d"><summary style="cursor:pointer;font-weight:600">Analizar los comentarios de una publicación</summary>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+      <p class="small muted" style="margin:0;max-width:80ch">Abre la publicación (de la página de un aspirante, de un grupo público o de un medio), copia sus comentarios y pégalos aquí. Claude identifica de qué aspirante habla cada comentario, el tema y si está a favor o en contra. Solo se guardan los temas y el tono, con el enlace de la publicación como fuente.</p>
+      <div class="grid-f">
+        <label class="field"><span>Red</span><select id="of-red">${ORED.map(x=>`<option>${x}</option>`).join("")}</select></label>
+        <label class="field"><span>Tipo de fuente</span><select id="of-tipo">${OTIPOS.map(x=>`<option>${x}</option>`).join("")}</select></label>
+        <label class="field"><span>Publicación sobre</span><select id="of-sobre"><option value="">Varios aspirantes o ninguno en particular</option>${S.map(s=>`<option value="${esc(s.id)}">${esc(s.nombre)}</option>`).join("")}</select></label>
+        <label class="field"><span>Nombre de la página o grupo</span><input type="text" id="of-nom" placeholder="Ej. Pereira Noticias"></label>
+        <label class="field" style="grid-column:1/-1"><span>Enlace de la publicación</span><input type="url" id="of-url" placeholder="https://"></label>
+        <label class="field"><span>Fecha de la publicación</span><input type="date" id="of-fpub"></label>
+      </div>
+      <label class="field"><span>Comentarios</span><textarea id="of-txt" style="min-height:150px" placeholder="Pega aquí los comentarios tal como los copias de la publicación…"></textarea></label>
+      <div class="row"><button class="btn primary" type="button" id="of-btn"${sampleFn?"":" disabled"}>Analizar con Claude</button><span class="small muted" id="of-st" aria-live="polite">${sampleFn?"":"El análisis con Claude no está disponible en esta vista."}</span></div>
+      <div id="of-out" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div></details>`;
+}
+async function oAnalizar(){
+  const S=segs.filter(s=>tKey(s)===oCont), ids=new Set(S.map(s=>s.id)), byId=Object.fromEntries(S.map(s=>[s.id,s]));
+  const txt=$("#of-txt").value.trim(), st=$("#of-st"), btn=$("#of-btn"), out=$("#of-out");
+  if(!txt){ st.textContent="Pega primero los comentarios."; return; }
+  const fuente={red:$("#of-red").value,tipo:$("#of-tipo").value,nombre:$("#of-nom").value.trim(),url:$("#of-url").value.trim(),fechaPub:$("#of-fpub").value,sobre:$("#of-sobre").value};
+  btn.disabled=true; st.textContent="Analizando…"; out.innerHTML=""; oPrev=null;
+  const [cg,dp,mu]=oCont.split("|");
+  const prompt=`Analiza los comentarios de una publicación en ${fuente.red} sobre la contienda por la ${contiendaNom(cg,dp,mu)} (Colombia, elecciones de 2027).
+Fuente: ${fuente.nombre||"sin nombre"} (${fuente.tipo}).${fuente.sobre?` La publicación trata sobre ${byId[fuente.sobre].nombre}: un comentario sin nombre propio se refiere a esa persona.`:""}
+Aspirantes de esta contienda (usa solo estos ids):
+${S.map(s=>`- "${s.id}": ${s.nombre}${s.partido?" ("+s.partido+")":""}`).join("\n")}
+
+Para cada comentario decide de qué aspirante habla (por nombre, apellido, apodo o el contexto), cuál es su tema principal y si está a favor, en contra o es neutro hacia ese aspirante. Un comentario puede hablar de más de un aspirante. Ignora el spam, las cadenas, las etiquetas a otras personas sin opinión y los comentarios que no hablan de ningún aspirante: cuéntalos en "analizados" pero no los clasifiques. No incluyas nombres de quienes comentan ni copies comentarios.
+Usa estos temas cuando apliquen: ${OTEMAS.join(", ")}. Si ninguno sirve, crea uno corto en español.
+
+Responde solo con JSON con esta forma exacta:
+{"analizados":40,"resultados":[{"cand":"id","favor":10,"contra":5,"neutro":3,"temas":[{"tema":"Seguridad","tono":"contra","n":4}]}],"resumen":"Una o dos frases neutrales sobre lo que dice la gente."}
+"favor", "contra" y "neutro" cuentan comentarios. "tono" es "favor", "contra" o "neutro". Máximo 8 temas por aspirante.
+
+COMENTARIOS:
+${txt.slice(0,60000)}`;
+  try{
+    const r=await sampleFn.json(prompt,{modelTier:"quick"});
+    const res=(Array.isArray(r.resultados)?r.resultados:[]).filter(x=>ids.has(x.cand)).map(x=>({cand:x.cand,favor:Math.max(0,Math.round(+x.favor||0)),contra:Math.max(0,Math.round(+x.contra||0)),neutro:Math.max(0,Math.round(+x.neutro||0)),
+      temas:(Array.isArray(x.temas)?x.temas:[]).slice(0,8).map(t=>({tema:String(t.tema||"Otro").slice(0,40),tono:OTONO[t.tono]?t.tono:"neutro",n:Math.max(1,Math.round(+t.n||1))}))})).filter(x=>nCom(x));
+    oPrev={contienda:oCont,fecha:hoy(),fuente,analizados:Math.max(Math.round(+r.analizados||0),...res.map(nCom),0),resultados:res,resumen:String(r.resumen||"").slice(0,400),origen:"Registro manual"};
+    out.innerHTML=`<span class="label">Resultado · ${fmt(oPrev.analizados)} comentarios analizados</span>
+      ${res.length?res.map(x=>`<div class="oasp"><b>${esc(byId[x.cand].nombre)}</b> <span class="small muted">${fmt(nCom(x))} comentarios</span>${tonoBar(x)}<div class="chips">${x.temas.map(t=>`<span class="pill${t.tono==="contra"?" warn":t.tono==="favor"?" ok":""}">${esc(t.tema)} · ${fmt(t.n)}</span>`).join("")}</div></div>`).join(""):'<p class="small muted" style="margin:0">Ningún comentario habló de los aspirantes de esta contienda.</p>'}
+      ${oPrev.resumen?`<p class="small" style="margin:0">${esc(oPrev.resumen)}</p>`:""}
+      <div class="row"><button class="btn primary" type="button" id="of-save"${res.length?"":" disabled"}>Guardar en Opinión</button><button class="btn ghost" type="button" id="of-desc">Descartar</button></div>`;
+    st.textContent="";
+  }catch(e){ st.textContent=errCopy(e); }
+  finally{ btn.disabled=false; }
+}
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("button,a"); if(!t) return;
+  if(t.id==="of-btn") oAnalizar();
+  else if(t.id==="of-desc"){ oPrev=null; $("#of-out").innerHTML=""; }
+  else if(t.id==="of-save"&&oPrev){ t.disabled=true;
+    const id=`${tSlug(oPrev.contienda)}_${oPrev.fecha}_${Date.now().toString(36)}`;
+    try{ await db.collection("opinion").doc(id).set(clone(oPrev)); oPrev=null; toast("Análisis guardado en Opinión"); $("#of-txt").value=""; $("#of-url").value=""; $("#of-out").innerHTML=""; }
+    catch(err){ t.disabled=false; toast("No se pudo guardar. Solo el dueño de la app puede guardar análisis."); } }
+  else if(t.dataset.odel){
+    if(t.dataset.armed){ try{ await db.collection("opinion").doc(t.dataset.odel).delete(); toast("Análisis eliminado"); }catch(err){ toast("No se pudo eliminar."); } }
+    else{ t.dataset.armed="1"; t.textContent="¿Eliminar?"; setTimeout(()=>{ if(t.isConnected){ delete t.dataset.armed; t.textContent="✕"; } },4000); } }
+  else if(t.dataset.gop){ oCont=t.dataset.gop; oCand=""; oPer="todo"; }
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.id==="o-cont"){ oCont=t.value; oCand=""; oPrev=null; renderOpinion(); }
+  else if(t.id==="o-per"){ oPer=t.value; renderOpinion(); }
+  else if(t.id==="o-cand"){ oCand=t.value; renderOpinion(); }
+});
 /* Informe PDF del termómetro: se arma con lo que muestra la vista y se pagina en A4 */
 const PDF_LIBS=["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js","https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.12/dist/html2canvas-pro.min.js"];
 function cargarScript(src){ return new Promise((ok,ko)=>{ if(document.querySelector(`script[src="${src}"]`)) return ok(); const s=document.createElement("script"); s.src=src; s.onload=ok; s.onerror=()=>ko(new Error("No se pudo cargar "+src)); document.head.appendChild(s); }); }
@@ -2009,11 +2191,12 @@ document.addEventListener("submit",async e=>{
 });
 
 /* ---------- Navegación ---------- */
-function vista(){ const vs=ESTATICO?["termometro","historico"]:["panorama","candidatos","comparar","termometro","historico"]; const v=(location.hash||"").slice(1); return vs.includes(v)?v:vs[0]; }
+function vista(){ const vs=ESTATICO?["termometro","opinion","historico"]:["panorama","candidatos","comparar","termometro","opinion","historico"]; const v=(location.hash||"").slice(1); return vs.includes(v)?v:vs[0]; }
 function renderAll(){
   const v=vista();
-  ["panorama","candidatos","comparar","termometro","historico"].forEach(n=>$("#v-"+n).hidden=n!==v);
+  ["panorama","candidatos","comparar","termometro","opinion","historico"].forEach(n=>$("#v-"+n).hidden=n!==v);
   if(v==="termometro") renderTermo();
+  if(v==="opinion") renderOpinion();
   if(v==="historico") renderHist();
   document.querySelectorAll("nav.tabs a").forEach(a=>{ if(a.dataset.v===v) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
   if(v==="panorama") renderPanorama();
@@ -2026,7 +2209,7 @@ window.addEventListener("hashchange",renderAll);
 opts($("#fc-cargo"),[["","Todos"],...Object.entries(CARGOS)],"");
 opts($("#fc-depto"),[["","Todos"],...Object.keys(DEPTOS).map(d=>[d,d])],"");
 (function(){ const d=Math.ceil((ELECCION-new Date())/864e5); $("#st-dias").innerHTML=d>0?`<b class="mono">${fmt(d)}</b> días para la elección territorial del 31 de octubre de 2027 (fecha estimada: último domingo de octubre)`:""; })();
-if(ESTATICO){ document.querySelectorAll("nav.tabs a").forEach(a=>{ if(!["termometro","historico"].includes(a.dataset.v)) a.remove(); }); }
+if(ESTATICO){ document.querySelectorAll("nav.tabs a").forEach(a=>{ if(!["termometro","opinion","historico"].includes(a.dataset.v)) a.remove(); }); }
 setStatus(); renderAll();
 initStore(); loadHist();
 </script>

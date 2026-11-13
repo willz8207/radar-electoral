@@ -5,7 +5,8 @@ Uso:
   python3 tools/build_consulta.py APP_HTML DBEXPORT_DIR "28 de octubre de 2026"
 
 APP_HTML      archivo HTML de la app (tools/app.html)
-DBEXPORT_DIR  carpeta con subcarpetas seguimiento/, mediciones/ y analisis/ (un JSON por documento)
+DBEXPORT_DIR  carpeta con subcarpetas seguimiento/, mediciones/, analisis/ y opinion/ (un JSON por documento;
+              opinion/ es opcional)
 fecha         texto que se muestra como "mediciones al ..."
 
 Escribe index.html y termometro.json en la raíz del repositorio. historico.json y
@@ -27,6 +28,7 @@ REEMPLAZOS = [
     ("El análisis con Claude", "El análisis"),
     ("La lectura con Claude", "La lectura asistida"),
     ("usar Claude", "usar el asistente"),
+    ("Abre la app desde claude.ai con tu cuenta para ver los análisis guardados.", "Recarga la página."),
     ("Abre la app desde claude.ai con tu cuenta para ver las mediciones guardadas.", "Recarga la página."),
 ]
 
@@ -47,6 +49,7 @@ def main(app_html, dbexport, fecha):
         "seguimiento": cargar(os.path.join(dbexport, "seguimiento")),
         "mediciones": cargar(os.path.join(dbexport, "mediciones")),
         "analisis": cargar(os.path.join(dbexport, "analisis")),
+        "opinion": cargar(os.path.join(dbexport, "opinion")),
     }
     with open(os.path.join(RAIZ, "termometro.json"), "w", encoding="utf-8") as f:
         json.dump(t, f, ensure_ascii=False)
@@ -67,7 +70,7 @@ def main(app_html, dbexport, fecha):
         html = html.replace(a, b)
     with open(os.path.join(RAIZ, "index.html"), "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"{len(t['seguimiento'])} aspirantes, {len(t['mediciones'])} mediciones")
+    print(f"{len(t['seguimiento'])} aspirantes, {len(t['mediciones'])} mediciones, {len(t['opinion'])} análisis de opinión")
 
 
 if __name__ == "__main__":
