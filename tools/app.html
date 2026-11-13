@@ -345,7 +345,7 @@ td.wrap{white-space:normal;min-width:13rem;text-align:left;font-size:.78rem;colo
       </div>
       <div class="row" style="gap:8px;align-items:flex-end">
         <label class="field" style="min-width:240px"><span>Contienda</span><select id="t-cont"></select></label>
-        <button class="btn primary" id="t-pdf" type="button">Descargar informe PDF</button>
+        <button class="btn" id="t-pdf" type="button">Informe del termómetro (PDF)</button><button class="btn primary" id="t-iest" type="button" data-iest="">Informe estratégico (PDF)</button>
       </div>
     </div>
     <p class="small muted" id="t-pdf-st" style="margin:0" aria-live="polite"></p>
@@ -1717,6 +1717,7 @@ function renderTermo(){
   if(!segs.length){ sel.innerHTML=""; out.innerHTML=`<div class="sheet empty"><h3>Aún no hay aspirantes en seguimiento</h3><p>Cuando se registre la primera revisión de redes de una contienda, aparecerá aquí.</p></div>`; return; }
   const conts=[...new Set(segs.map(tKey))];
   if(!conts.includes(tCont)) tCont=conts[0];
+  $("#t-iest").dataset.iest=tCont;
   sel.innerHTML=conts.map(k=>{ const [c,d,m]=k.split("|"); return `<option value="${esc(k)}"${k===tCont?" selected":""}>${esc(contiendaNom(c,d,m))}</option>`; }).join("");
   const S=segs.filter(s=>tKey(s)===tCont), ids=new Set(S.map(s=>s.id)), byId=Object.fromEntries(S.map(s=>[s.id,s]));
   const M=meds.filter(m=>ids.has(m.cand)), fechas=[...new Set(M.map(m=>m.fecha))].sort();
@@ -1766,6 +1767,7 @@ function renderTermo(){
           return `<div class="small" style="display:flex;flex-direction:column;gap:4px;background:var(--accent-soft);padding:10px 12px;border-radius:4px"><span class="label">Análisis · ${esc(a[0].fecha)}</span><span style="line-height:1.55">${esc(a[0].texto)}</span>${a.length>1?`<details><summary class="small" style="cursor:pointer">Análisis anteriores</summary>${a.slice(1).map(x=>`<p class="small" style="margin:6px 0 0"><b class="mono">${esc(x.fecha)}</b> ${esc(x.texto)}</p>`).join("")}</details>`:""}</div>`; })()}
         ${apoyosHTML(s)}
         ${opinionFicha(tCont,s)}
+        <div><button class="btn sm" type="button" data-iest="${esc(tCont)}::${esc(s.id)}">Informe estratégico de ${esc(s.nombre.split(" ")[0])} (PDF)</button></div>
         ${hm.length>1?`<div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Audiencia</th><th>Interacciones</th><th>Vistas TikTok</th></tr></thead><tbody>${hm.map(x=>{ const t=tMetr(x); return `<tr><td class="num">${esc(x.fecha)}</td><td class="num">${fmt(t.aud)}</td><td class="num">${fmt(t.inter)}</td><td class="num">${x.tt?fmt(nz0(x.tt.vistas)):"—"}</td></tr>`; }).join("")}</tbody></table></div>`:""}
       </div></article>`; }).join("")}</div>`;
   const opts=S.map(s=>`<option value="${esc(s.id)}">${esc(s.nombre)}</option>`).join("");
@@ -2126,6 +2128,126 @@ document.addEventListener("submit",async e=>{
   const doc={nombre,cargo,depto,municipio,partido:$("#oa-par").value.trim(),histNombre:"",rol:"",cuentas:{},senales:[],apoyos:[],analisis:[],alias:$("#oa-ali").value.split(",").map(x=>x.trim()).filter(Boolean)};
   try{ await db.collection("seguimiento").doc(id).set(doc); toast("Aspirante agregado"); e.target.reset(); $("#o-form").dataset.c=""; }catch(err){ toast("No se pudo agregar. Solo el dueño de la app puede hacerlo."); }
 });
+/* ---------- Informe estratégico por aspirante (PDF) ---------- */
+let estCache={};
+function tSerie(key,id){
+  const S=segs.filter(s=>tKey(s)===key), ids=new Set(S.map(s=>s.id)), M=meds.filter(m=>ids.has(m.cand));
+  return [...new Set(M.map(m=>m.fecha))].sort().map(f=>{ const r=tIndice(M.filter(m=>m.fecha===f).map(m=>({id:m.cand,m}))), i=r.findIndex(x=>x.id===id); return i<0?null:{fecha:f,total:r[i].total,share:r[i].share,pos:i+1,de:r.length,x:r[i].x,contrib:r[i].contrib}; }).filter(Boolean);
+}
+const NIV={F:["Fuerte","var(--ok)"],M:["Medio","var(--warn)"],D:["Débil","var(--bad)"],N:["Sin datos","var(--muted)"]};
+function datosAsp(key,s){
+  const [cargo,depto,muni]=key.split("|"), D=opis.filter(o=>o.contienda===key), a=oAgg(D,s.id), totC=segs.filter(x=>tKey(x)===key).reduce((t,x)=>t+oAgg(D,x.id).tot,0);
+  const ser=tSerie(key,s.id), u=ser[ser.length-1]||null, p=ser[ser.length-2]||null, h=histDe(s.histNombre);
+  const g=hGet("2023",cargo,depto,muni), gan=g&&g.o.k[0]?{nombre:nname(g.o.k[0][1]),partido:pname(g.o.k[0][0]),v:g.o.k[0][2],val:validos(g.o),seg:g.o.k[1]?g.o.k[1][2]:0}:null;
+  const ap=(s.apoyos||[]).map(x=>apoyoInfo(x,depto)), vAp=ap.reduce((t,x)=>t+x.v,0), propio=h?h.best.v:0;
+  const canal={}; D.forEach(o=>(o.resultados||[]).filter(r=>r.cand===s.id).forEach(r=>{ const k=canalDe(o.fuente), c=canal[k]||(canal[k]=vacioT()); Object.keys(c).forEach(t=>c[t]+=nz0(r[t])); }));
+  const reg=oRegion(D), fav=a.temas.filter(x=>x.favor>x.contra).sort((x,y)=>y.favor-x.favor), con=a.temas.filter(x=>x.contra>x.favor).sort((x,y)=>y.contra-x.contra);
+  const neto=netoDe(a.tono), rech=a.tot?a.tono.contra/a.tot:null, nM=nCom(a.sexo.M), nH=nCom(a.sexo.H), m=netoDe(a.sexo.M), hh=netoDe(a.sexo.H);
+  const lvl=(v,f,mm,inv)=>v==null?"N":inv?(v<=f?"F":v<=mm?"M":"D"):(v>=f?"F":v>=mm?"M":"D");
+  const ind=[
+    {k:"Base electoral propia",nivel:gan&&propio?lvl(propio/gan.v,0.6,0.3):"N",valor:propio?`${fmt(propio)} votos (${h.best.y})`:"Sin historial",exp:gan?`Su mejor votación equivale al ${pct(propio/gan.v,0)} de lo que obtuvo el ganador de 2023 (${fmt(gan.v)} votos).`:"No hay resultado de 2023 para comparar."},
+    {k:"Estructura y apoyos",nivel:gan?lvl((propio+vAp)/gan.v,0.8,0.4):"N",valor:`${fmt(ap.length)} apoyos · ${fmt(vAp)} votos de referencia`,exp:"Votos que sacaron en su última elección quienes lo respaldan, sumados a su votación propia, frente al umbral del ganador de 2023. Los votos no se transfieren completos."},
+    {k:"Presencia digital",nivel:u?lvl(u.total,60,35):"N",valor:u?`${fmt(u.total,0)} de 100 · puesto ${u.pos} de ${u.de}`:"Sin medición",exp:"Puntaje del termómetro (conversación, tasa de interacción, constancia, video y audiencia) frente a sus rivales."},
+    {k:"Tendencia digital",nivel:u&&p?(u.total-p.total>=3?"F":u.total-p.total>-3?"M":"D"):"N",valor:u&&p?`${u.total-p.total>=0?"▲":"▼"} ${fmt(Math.abs(u.total-p.total),1)} pts desde ${p.fecha}`:"Necesita dos mediciones",exp:"Si su presencia digital crece o se desgasta entre revisiones."},
+    {k:"Opinión neta",nivel:lvl(neto,20,-10),valor:neto==null?"Sin comentarios":`${netoTxt(neto)} en ${fmt(a.tot)} comentarios`,exp:"% a favor menos % en contra en los comentarios que hablan de él o ella."},
+    {k:"Rechazo (techo)",nivel:lvl(rech,0.2,0.4,true),valor:rech==null?"Sin comentarios":`${pct(rech,0)} en contra`,exp:"Un rechazo alto limita el crecimiento: es más difícil convencer a quien ya se opone que a quien no lo conoce."},
+    {k:"Peso en la conversación",nivel:a.tot&&totC?lvl(a.tot/totC,0.3,0.15):"N",valor:a.tot?`${pct(a.tot/totC,0)} de los comentarios de la contienda`:"—",exp:"Qué tanto se habla de él o ella: aproxima el nivel de conocimiento entre quienes comentan."},
+    {k:"Mujeres y hombres",nivel:nM>=10&&nH>=10?(Math.abs(m-hh)<=15?"F":Math.abs(m-hh)<=35?"M":"D"):"N",valor:nM+nH?`Mujeres ${netoTxt(m)} (${nM}) · hombres ${netoTxt(hh)} (${nH})`:"Sin datos",exp:"Brecha de aprobación aproximada entre mujeres y hombres que comentan (sexo estimado por el nombre). Una brecha grande señala un segmento por trabajar."},
+    {k:"Agenda frente a la región",nivel:reg.length?(fav.some(t=>reg.slice(0,5).some(r=>otk(r.tema).some(w=>otk(t.tema).includes(w))))?"F":"M"):"N",valor:reg.length?`Problemáticas: ${reg.slice(0,3).map(r=>r.tema).join(", ")}`:"Sin datos",exp:"Si los temas por los que lo elogian coinciden con los problemas que más preocupan a la gente."},
+    {k:"Pauta en Meta",nivel:u?(meds.find(x=>x.cand===s.id&&x.fecha===u.fecha)||{}).pautaPropia?"F":"D":"N",valor:u?((meds.find(x=>x.cand===s.id&&x.fecha===u.fecha)||{}).pautaPropia?"Activa":"No detectada"):"—",exp:"Si ya invierte en publicidad propia: indica músculo financiero y decisión de campaña."}
+  ];
+  const nCalidad=a.tot>=100&&ser.length>=2?"Alta":a.tot>=30||ser.length>=1?"Media":"Baja";
+  return {s,a,neto,rech,ser,u,p,h,gan,ap,vAp,propio,canal,reg,fav,con,ind,m,hh,nM,nH,totC,calidad:nCalidad,cargo,depto,muni};
+}
+function promptEst(key,d,rivales){
+  const L=d.ind.map(i=>`- ${i.k}: ${i.valor} (${NIV[i.nivel][0]})`).join("\n");
+  return `Eres un estratega electoral con experiencia en campañas municipales en Colombia. Con los datos siguientes, escribe un análisis estratégico de ${d.s.nombre}, aspirante a la ${contiendaNom(...key.split("|"))} (elecciones de 2027), útil para que un consultor decida cómo y con quién trabajar.
+Reglas: usa solo estos datos; di cuando no alcanzan; no predigas resultados ni hables de intención de voto; frases cortas en español sencillo; recomendaciones concretas y accionables (qué hacer, con quién, en qué canal o tema).
+
+DATOS DEL ASPIRANTE
+Partido: ${d.s.partido||"sin definir"} · Rol: ${d.s.rol||"—"}
+${L}
+Temas que le suman: ${d.fav.slice(0,5).map(t=>t.tema+" ("+t.favor+")").join(", ")||"sin datos"}
+Temas que le restan: ${d.con.slice(0,5).map(t=>t.tema+" ("+t.contra+")").join(", ")||"sin datos"}
+Opinión por canal: ${Object.entries(d.canal).map(([k,t])=>k+" "+netoTxt(netoDe(t))+" ("+nCom(t)+")").join(", ")||"sin datos"}
+Apoyos: ${d.ap.map(x=>x.a.nombre+(x.v?" ("+x.v+" votos)":"")).join(", ")||"ninguno registrado"}
+Trayectoria: ${d.h?d.h.es.map(e=>`${e.y} ${HNOM[e.code]} ${e.v} votos${e.win?" (ganó)":""}`).join("; "):"sin historial electoral"}
+Señales: ${(d.s.senales||[]).join(" | ")||"—"}
+Ganador 2023: ${d.gan?`${d.gan.nombre} (${d.gan.partido}) con ${d.gan.v} votos de ${d.gan.val} válidos; segundo ${d.gan.seg}`:"sin dato"}
+Problemáticas de la región en los comentarios: ${d.reg.slice(0,8).map(r=>r.tema+" ("+r.n+")").join(", ")||"sin datos"}
+Calidad de los datos: ${d.calidad} (${d.a.tot} comentarios, ${d.ser.length} mediciones)
+
+RIVALES
+${rivales}
+
+Responde solo con JSON con esta forma:
+{"resumen":"3 o 4 frases con la posición real del aspirante","fortalezas":["…"],"debilidades":["…"],"oportunidades":["…"],"amenazas":["…"],"mensajes":["temas o mensajes que le conviene trabajar"],"riesgos":["…"],"recomendaciones":["acciones concretas para los próximos 90 días"],"vigilar":["indicadores o hechos a seguir"],"vincularse":{"a_favor":["razones para trabajar con esta campaña"],"en_contra":["razones para no hacerlo o condiciones"]}}
+Entre 3 y 5 elementos por lista.`;
+}
+const lista=(t,xs,col)=>xs&&xs.length?`<div style="display:flex;flex-direction:column;gap:4px;min-width:0"><b style="color:${col||"var(--ink)"}">${t}</b><ul style="margin:0;padding-left:1.1rem" class="small">${xs.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:"";
+function bloquesAsp(key,d,E){
+  const s=d.s, B=[];
+  B.push(hoja(`${s.nombre}`,`<p class="small muted" style="margin:0">${esc([s.partido,s.rol].filter(Boolean).join(" · "))} · Calidad de los datos: <b>${d.calidad}</b> (${fmt(d.a.tot)} comentarios, ${fmt(d.ser.length)} mediciones)</p>
+    ${E&&E.resumen?`<div class="ai-out" style="max-width:none;background:var(--accent-soft);padding:10px 12px;border-radius:4px">${esc(E.resumen)}</div>`:""}
+    <div class="tbl-wrap"><table><thead><tr><th>Dimensión</th><th style="text-align:left">Nivel</th><th style="text-align:left">Dato</th><th style="text-align:left">Qué significa</th></tr></thead><tbody>
+    ${d.ind.map(i=>`<tr><td style="text-align:left;white-space:normal;min-width:8rem"><b>${esc(i.k)}</b></td><td style="text-align:left"><span class="pill" style="color:${NIV[i.nivel][1]};border-color:${NIV[i.nivel][1]}">${NIV[i.nivel][0]}</span></td><td style="text-align:left;white-space:normal;min-width:9rem">${esc(i.valor)}</td><td style="text-align:left;white-space:normal;min-width:14rem" class="small">${esc(i.exp)}</td></tr>`).join("")}
+    </tbody></table></div>`,"Tablero de viabilidad: cada dimensión se califica como fuerte, media o débil frente a sus rivales y al umbral de la última elección."));
+  if(E) B.push(hoja("Análisis estratégico",`<div class="two">${lista("Fortalezas",E.fortalezas,"var(--ok)")}${lista("Debilidades",E.debilidades,"var(--bad)")}${lista("Oportunidades",E.oportunidades,"var(--c-base)")}${lista("Amenazas",E.amenazas,"var(--warn)")}</div>
+    <div class="two">${lista("Mensajes y temas que le convienen",E.mensajes)}${lista("Riesgos",E.riesgos)}</div>
+    ${lista("Recomendaciones para los próximos 90 días",E.recomendaciones)}${lista("Qué vigilar",E.vigilar)}
+    ${E.vincularse?`<div class="two" style="border-top:1px solid var(--rule-2);padding-top:10px">${lista("Para decidir: razones para trabajar con esta campaña",E.vincularse.a_favor,"var(--ok)")}${lista("Para decidir: razones en contra o condiciones",E.vincularse.en_contra,"var(--bad)")}</div>`:""}`,
+    `Elaborado por Claude con los datos de este informe el ${esc(E.fecha||hoy())}. Es una guía para la decisión, no reemplaza el criterio del equipo.`));
+  const a=d.a;
+  B.push(hoja("Opinión en redes",a.tot?`${tonoBar(a.tono)}
+    <div class="two"><div><b class="small">Le suma</b><div class="tbl-wrap"><table><tbody>${d.fav.slice(0,6).map(t=>`<tr><td style="text-align:left">${esc(t.tema)}</td><td class="num">${fmt(t.favor)}</td></tr>`).join("")||"<tr><td>—</td></tr>"}</tbody></table></div></div>
+    <div><b class="small">Le resta</b><div class="tbl-wrap"><table><tbody>${d.con.slice(0,6).map(t=>`<tr><td style="text-align:left">${esc(t.tema)}</td><td class="num">${fmt(t.contra)}</td></tr>`).join("")||"<tr><td>—</td></tr>"}</tbody></table></div></div></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Canal</th><th>Comentarios</th><th>Índice neto</th><th>A favor</th><th>En contra</th></tr></thead><tbody>${Object.entries(d.canal).map(([k,t])=>{ const n=nCom(t); return `<tr><td>${esc(k)}</td><td class="num">${fmt(n)}</td><td class="num">${netoTxt(netoDe(t))}</td><td class="num">${pct(t.favor/(n||1),0)}</td><td class="num">${pct(t.contra/(n||1),0)}</td></tr>`; }).join("")}
+    ${d.nM+d.nH?`<tr><td>Mujeres (aprox.)</td><td class="num">${fmt(d.nM)}</td><td class="num">${netoTxt(d.m)}</td><td></td><td></td></tr><tr><td>Hombres (aprox.)</td><td class="num">${fmt(d.nH)}</td><td class="num">${netoTxt(d.hh)}</td><td></td><td></td></tr>`:""}</tbody></table></div>`:'<p class="small muted" style="margin:0">Aún no hay comentarios analizados sobre este aspirante.</p>',"Tono, temas, canales y aproximación por sexo de los comentarios que hablan de este aspirante."));
+  B.push(hoja("Presencia digital",d.ser.length?`<div class="tbl-wrap"><table><thead><tr><th>Revisión</th><th>Puntaje</th><th>Puesto</th><th>Participación</th><th>Audiencia</th><th>Interacciones</th><th>Publicaciones</th></tr></thead><tbody>${d.ser.map(x=>`<tr><td class="num">${esc(x.fecha)}</td><td class="num">${fmt(x.total,1)}</td><td class="num">${x.pos} de ${x.de}</td><td class="num">${pct(x.share,0)}</td><td class="num">${fmt(x.x.aud)}</td><td class="num">${fmt(x.x.inter)}</td><td class="num">${fmt(x.x.pubs)}</td></tr>`).join("")}</tbody></table></div>
+    ${d.u?`<p class="small" style="margin:0">Composición del último puntaje: ${TCOMP.map(c=>`${c.n} ${fmt(d.u.contrib[c.k],1)} de ${c.w}`).join(" · ")}.</p>`:""}`:'<p class="small muted" style="margin:0">Sin mediciones de redes todavía.</p>'));
+  B.push(hoja("Trayectoria electoral y apoyos",`${d.h?`<div class="tbl-wrap"><table><thead><tr><th>Año</th><th style="text-align:left">Cargo y territorio</th><th>Votos</th><th>Resultado</th></tr></thead><tbody>${d.h.es.slice().sort((x,y)=>y.y.localeCompare(x.y)).map(e=>`<tr><td class="num">${e.y}</td><td style="text-align:left">${HNOM[e.code]} · ${esc(terrNom(e.code,e.terr).split(",")[0])}</td><td class="num">${fmt(e.v)}</td><td>${e.win?"Elegido":"No elegido"}</td></tr>`).join("")}</tbody></table></div>`:'<p class="small muted" style="margin:0">No aparece en los resultados de 2003 a 2023.</p>'}
+    ${d.gan?`<p class="small" style="margin:0">Umbral de referencia: en 2023 ganó ${esc(d.gan.nombre)} (${esc(d.gan.partido)}) con <b>${fmt(d.gan.v)}</b> votos (${pct(d.gan.v/d.gan.val,0)} de los válidos); el segundo sacó ${fmt(d.gan.seg)}.</p>`:""}
+    ${d.ap.length?`<div class="tbl-wrap"><table><thead><tr><th style="text-align:left">Apoyo</th><th>Votos de referencia</th><th style="text-align:left">Nota</th></tr></thead><tbody>${d.ap.map(x=>`<tr><td style="text-align:left">${esc(x.a.nombre)}</td><td class="num">${x.v?fmt(x.v)+(x.e?` (${x.e.y})`:""):"—"}</td><td style="text-align:left;white-space:normal" class="small">${esc(x.a.nota||"")}</td></tr>`).join("")}</tbody></table></div>`:'<p class="small muted" style="margin:0">Sin apoyos registrados.</p>'}
+    ${(s.senales||[]).length?`<div class="small"><b>Señales</b><ul style="margin:4px 0 0;padding-left:1.1rem">${s.senales.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}`));
+  return B;
+}
+async function informeEstrategico(key,soloId,btn,st){
+  if(hState!=="ok"){ st.textContent="Espera a que cargue el histórico electoral."; return; }
+  const S=segs.filter(s=>tKey(s)===key), sel=soloId?S.filter(s=>s.id===soloId):S, D=S.map(s=>datosAsp(key,s));
+  btn.disabled=true;
+  const riv=D.map(d=>`- ${d.s.nombre}: termómetro ${d.u?fmt(d.u.total,0):"—"}, opinión ${netoTxt(d.neto)} (${d.a.tot} com.), rechazo ${d.rech==null?"—":pct(d.rech,0)}, mejor votación ${d.propio||"—"}, apoyos ${d.ap.length}`).join("\n");
+  const ref=id=>uid?db.collection(`data/users/${uid}/estrategico`).doc(id):null, est={};
+  if(sampleFn&&!ESTATICO){
+    for(const [i,s] of sel.entries()){ const d=D.find(x=>x.s.id===s.id), firma=`${hoy()}|${d.a.tot}|${d.ser.length}|${(s.senales||[]).length}|${(s.apoyos||[]).length}`;
+      if(estCache[s.id]&&estCache[s.id].firma===firma){ est[s.id]=estCache[s.id]; continue; }
+      st.textContent=`Claude analiza a ${s.nombre} (${i+1} de ${sel.length})…`;
+      try{ const r=await sampleFn.json(promptEst(key,d,riv),{modelTier:"complex"}); est[s.id]=estCache[s.id]={...r,fecha:hoy(),firma}; try{ const x=ref(s.id); if(x) await x.set(clone(est[s.id])); }catch(e){} }
+      catch(e){ try{ const x=ref(s.id), g=x&&await x.get(); if(g&&g.exists) est[s.id]=g.data(); }catch(_){} } }
+  }
+  const nombreC=contiendaNom(...key.split("|"));
+  const bl=[portadaHTML("Radar Electoral 2027 · Informe estratégico",soloId?sel[0].nombre:nombreC,soloId?nombreC:`${sel.length} aspirantes`,"Integra presencia digital, opinión en comentarios (por tema, canal y sexo aproximado), problemáticas de la región, apoyos e histórico electoral. No es una encuesta ni mide intención de voto (Ley 2494 de 2025).")];
+  bl.push(hoja("Cómo leer este informe",`<ul class="small" style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:3px">
+    <li><b>Base electoral y estructura</b>: votos propios y de sus apoyos frente al umbral del ganador de la última elección. Es lo más difícil de construir.</li>
+    <li><b>Presencia digital y tendencia</b>: qué tanto mueve sus redes y si crece o se desgasta.</li>
+    <li><b>Opinión neta y rechazo</b>: el balance a favor/en contra y el techo que impone el rechazo.</li>
+    <li><b>Peso en la conversación</b>: aproxima qué tan conocido es entre quienes comentan.</li>
+    <li><b>Mujeres y hombres</b>: brecha aproximada de aprobación (sexo estimado por el nombre).</li>
+    <li><b>Agenda</b>: si lo que la gente le reconoce coincide con los problemas que más preocupan.</li>
+    <li><b>Calidad de los datos</b>: con menos de 100 comentarios o una sola medición, las conclusiones son preliminares.</li></ul>`));
+  if(!soloId){
+    bl.push(hoja("Panorama comparado",`<div class="tbl-wrap"><table><thead><tr><th>Aspirante</th><th>Termómetro</th><th>Opinión neta</th><th>Rechazo</th><th>Comentarios</th><th>Mejor votación</th><th>Votos de apoyos</th><th>Mujeres</th><th>Hombres</th></tr></thead><tbody>
+      ${D.slice().sort((x,y)=>(y.u?y.u.total:-1)-(x.u?x.u.total:-1)).map(d=>`<tr><td style="text-align:left;white-space:normal;min-width:9rem">${esc(d.s.nombre)}</td><td class="num">${d.u?fmt(d.u.total,0):"—"}</td><td class="num">${netoTxt(d.neto)}</td><td class="num">${d.rech==null?"—":pct(d.rech,0)}</td><td class="num">${fmt(d.a.tot)}</td><td class="num">${d.propio?fmt(d.propio):"—"}</td><td class="num">${fmt(d.vAp)}</td><td class="num">${d.nM?netoTxt(d.m):"—"}</td><td class="num">${d.nH?netoTxt(d.hh):"—"}</td></tr>`).join("")}
+      </tbody></table></div>${D[0]&&D[0].gan?`<p class="small" style="margin:0">Umbral de referencia: ${esc(D[0].gan.nombre)} ganó en 2023 con ${fmt(D[0].gan.v)} votos.</p>`:""}
+      ${D[0]&&D[0].reg.length?`<p class="small" style="margin:0"><b>Problemáticas que más menciona la gente:</b> ${D[0].reg.slice(0,6).map(r=>esc(r.tema)+" ("+fmt(r.n)+")").join(", ")}.</p>`:""}`));
+    const an=anas.find(x=>x.id===tSlug(key));
+    if(an&&an.conjunta) bl.push(hoja("Lectura conjunta de la contienda",`<div class="ai-out" style="max-width:none">${esc(an.conjunta.texto)}</div>`,`Actualizada el ${esc(an.conjunta.fecha||"")}.`));
+  }
+  sel.forEach(s=>bl.push(...bloquesAsp(key,D.find(x=>x.s.id===s.id),est[s.id])));
+  bl.push(hoja("Fuentes y método",`<p class="small" style="margin:0">Redes: perfiles públicos de Facebook, Instagram y TikTok y Biblioteca de Anuncios de Meta. Opinión: comentarios públicos de las publicaciones listadas en la pestaña Opinión (no se guardan nombres). Histórico: Registraduría Nacional del Estado Civil (2019 y 2023) y CEDAE, Universidad de los Andes (2003–2015). Señales y apoyos: prensa regional citada en cada señal.</p>${CREDITOS}`));
+  await pdfDeBloques(bl,`Informe_Estrategico_${tSlug(soloId?sel[0].nombre:key)}_${hoy()}.pdf`,soloId?sel[0].nombre:nombreC,st,btn);
+}
+document.addEventListener("click",e=>{ const t=e.target.closest&&e.target.closest("[data-iest]"); if(!t) return;
+  const [key,id]=t.dataset.iest.split("::"); informeEstrategico(key,id||"",t,$("#t-pdf-st")); if(id) $("#t-pdf-st").scrollIntoView({block:"nearest"}); });
 /* Informe PDF del termómetro: se arma con lo que muestra la vista y se pagina en A4 */
 const PDF_LIBS=["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js","https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.12/dist/html2canvas-pro.min.js"];
 function cargarScript(src){ return new Promise((ok,ko)=>{ if(document.querySelector(`script[src="${src}"]`)) return ok(); const s=document.createElement("script"); s.src=src; s.onload=ok; s.onerror=()=>ko(new Error("No se pudo cargar "+src)); document.head.appendChild(s); }); }
