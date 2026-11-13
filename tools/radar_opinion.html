@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radar · Opinión Digital</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#1b2330;--mute:#647084;--line:#e2e6ec;--acc:#1f5fbf;--pos:#1e8a4c;--neg:#c23b3b;--neu:#8a93a3;--warn:#b7791f;--soft:#eef3fb}
+@media (prefers-color-scheme:dark){:root{--bg:#12161d;--card:#1a2029;--ink:#e6eaf0;--mute:#97a1b2;--line:#2b3340;--acc:#6aa0f0;--pos:#4cc07f;--neg:#ef6b6b;--neu:#7c8698;--warn:#e0a84a;--soft:#1f2a3a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:14px 20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+header h1{font-size:18px;margin:0}header small{color:var(--mute);display:block;font-weight:400}
+.tag{font-size:12px;background:var(--soft);color:var(--acc);padding:4px 10px;border-radius:20px;font-weight:600}
+nav{display:flex;gap:4px;flex-wrap:wrap;padding:10px 20px;background:var(--card);border-bottom:1px solid var(--line)}
+nav button{border:0;background:none;color:var(--mute);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit;font-weight:600}
+nav button.on{background:var(--soft);color:var(--acc)}
+main{max-width:1200px;margin:0 auto;padding:20px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.card h2{font-size:16px;margin:0 0 12px}.card h3{font-size:14px;margin:14px 0 8px;color:var(--mute)}
+.grid{display:grid;gap:16px;align-items:start;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:160px}
+label{display:block;font-size:13px;color:var(--mute);margin-bottom:4px;font-weight:600}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:220px;font-size:13px;font-family:ui-monospace,Consolas,monospace}
+.btn{background:var(--acc);color:#fff;border:0;padding:9px 16px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}
+.btn.sec{background:var(--soft);color:var(--acc)}.btn.del{background:none;color:var(--neg);padding:4px 8px}
+.muted{color:var(--mute);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.kpi{background:var(--bg);border-radius:8px;padding:8px;text-align:center}.kpi b{display:block;font-size:20px}.kpi span{font-size:11px;color:var(--mute)}
+.bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--line);margin:6px 0}
+.bar i{display:block}.p{background:var(--pos)}.n{background:var(--neg)}.u{background:var(--neu)}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700}
+.pill.P{background:color-mix(in srgb,var(--pos) 18%,transparent);color:var(--pos)}.pill.N{background:color-mix(in srgb,var(--neg) 18%,transparent);color:var(--neg)}.pill.U{background:color-mix(in srgb,var(--neu) 25%,transparent);color:var(--mute)}
+.alert{padding:8px 12px;border-radius:8px;font-size:13px;margin:6px 0}.alert.w{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}.alert.ok{background:color-mix(in srgb,var(--pos) 12%,transparent);color:var(--pos)}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--mute);font-weight:600;white-space:nowrap}
+.tbl{overflow-x:auto}
+tr.rev{background:color-mix(in srgb,var(--warn) 8%,transparent)}tr.rep td:nth-child(2){padding-left:22px}
+.ths{display:flex;flex-direction:column;gap:4px}.th{display:flex;justify-content:space-between;font-size:13px;gap:8px}.th em{font-style:normal;color:var(--mute)}
+.mini{height:6px;background:var(--line);border-radius:3px;flex:0 0 90px;align-self:center}.mini i{display:block;height:100%;border-radius:3px}
+.chart{width:100%;height:auto;display:block;max-width:720px;margin:0 auto}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--mute);margin-top:6px}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.hm td{text-align:center;font-weight:600;font-size:12px}.hm td:first-child{text-align:left;font-weight:400}
+.sem{display:grid;grid-template-columns:1fr 1fr;gap:10px}.sem ul{margin:4px 0 0;padding-left:18px;font-size:13px}
+.note{font-size:12px;color:var(--mute);margin-top:8px;border-left:3px solid var(--line);padding-left:8px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:3px 6px;margin:2px 4px 2px 0;font-size:12px}
+.chip select{width:auto;padding:2px 4px;font-size:12px}.chip button{border:0;background:none;color:var(--neg);cursor:pointer;font-weight:700;padding:0 2px}
+.chip.P{border-color:var(--pos)}.chip.N{border-color:var(--neg)}
+#tip{position:fixed;z-index:60;max-width:340px;background:#1b2330;color:#fff;font-size:12.5px;line-height:1.45;padding:9px 11px;border-radius:9px;box-shadow:0 6px 20px rgba(0,0,0,.25);pointer-events:none;white-space:pre-line;display:none}
+#tip b{color:#ffd479}
+[data-tip]{cursor:help}
+th[data-tip],.tipu{text-decoration:underline dotted color-mix(in srgb,var(--mute) 60%,transparent);text-underline-offset:3px}
+.hint{font-size:12px;color:var(--mute);margin:0 0 10px}
+@media print{#tip,.hint{display:none!important}}
+#modal{position:fixed;inset:0;background:rgba(10,15,25,.55);z-index:70;display:none;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto}
+#modal .box{background:var(--card);color:var(--ink);border-radius:14px;max-width:900px;width:100%;padding:18px 18px 14px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+#modal .box h2{margin:0 0 4px;font-size:17px}#modal .cerrar{float:right;border:0;background:var(--soft);color:var(--acc);border-radius:8px;padding:6px 12px;font-weight:700;cursor:pointer}
+.grp{border:1px solid var(--line);border-radius:10px;margin:10px 0;overflow:hidden}.grp>div:first-child{background:var(--bg);padding:7px 10px;font-weight:700;font-size:13px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.grp table td{font-size:13px}
+@media print{#modal{display:none!important}}
+footer{text-align:center;color:var(--mute);font-size:12px;padding:20px}
+.hide{display:none}
+.big{font-size:30px;font-weight:800}
+ol li{margin-bottom:6px}
+@media print{
+ @page{size:letter;margin:12mm}
+ :root{--bg:#fff;--card:#fff;--ink:#111;--mute:#555;--line:#ccc;--soft:#eef3fb}
+ html,body{background:#fff;font-size:11px;width:auto}
+ header,nav,footer,.noprint,.btn{display:none!important}
+ main{max-width:none;padding:0;margin:0}
+ #print-head{display:block!important}
+ .card{border:1px solid #ccc;box-shadow:none;padding:10px 12px;margin-bottom:10px;break-inside:auto}
+ .card h2{font-size:13px;margin:0 0 6px;break-after:avoid}.card h3{font-size:11px;margin:8px 0 4px;break-after:avoid}
+ h2,h3{break-after:avoid}
+ /* fichas y tarjetas pequeñas: dos por fila, sin partirse */
+ .grid{display:grid!important;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
+ .grid.g1{grid-template-columns:1fr}
+ .grid>.card{margin:0;break-inside:avoid}
+ .keep{break-inside:avoid}
+ .grid .chart{max-width:100%;margin:0}
+ .chart,.legend,.kpis,.bar,.alert,.ths,.sem,table tr{break-inside:avoid}
+ .big{font-size:22px}.kpis{gap:4px;margin:6px 0}.kpi{padding:4px}.kpi b{font-size:13px}.kpi span{font-size:9px}
+ .alert{padding:5px 8px;font-size:10px;margin:4px 0}.muted{font-size:10px}.note{font-size:10px}
+ .th{font-size:10px}.mini{flex-basis:60px}.sem ul{font-size:10px;padding-left:14px}
+ .bar,.mini i,.alert,.pill,.kpi,.hm td,rect,circle{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ /* tablas: que quepan en el ancho de la hoja */
+ .tbl{overflow:visible}table{font-size:9px;width:100%;table-layout:auto}th{white-space:normal;font-size:8.5px}th,td{padding:3px 4px}td .muted{font-size:8px}
+ .tbl td:first-child,.tbl th:first-child{min-width:105px}
+ .tbl td[style*="min-width:120px"]{min-width:70px!important}
+ .pill{font-size:8px;padding:1px 5px}
+ .hm td{font-size:9px}
+}
+
+#print-head{display:none;margin-bottom:14px;border-bottom:2px solid #1f5fbf;padding-bottom:8px}
+#print-head h1{font-size:18px;margin:0}#print-head p{margin:2px 0;font-size:11px;color:#555}
+@media(max-width:600px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.mtabs{display:inline-flex;gap:4px;flex-wrap:wrap}.mtab{border:1px solid var(--line);background:transparent;color:inherit;padding:6px 14px;border-radius:999px;font:inherit;font-weight:600;cursor:pointer}.mtab.on{background:var(--acc);border-color:var(--acc);color:#fff}
+</style>
+</head>
+<body>
+<header>
+ <div><h1>Radar Electoral · Opinión Digital<small>Análisis de conversación en Facebook por candidato</small></h1></div>
+ <span class="tag">Uso interno · No es una encuesta</span>
+</header>
+<nav id="nav">
+ <button data-t="tablero" class="on">Tablero</button>
+ <button data-t="analisis">Análisis</button>
+ <button data-t="nueva">Nueva medición</button>
+ <button data-t="mediciones">Mediciones</button>
+ <button data-t="config">Candidatos y fuentes</button>
+ <button data-t="ayuda">Cómo copiar</button>
+</nav>
+<main>
+
+<section id="t-tablero"></section>
+
+<section id="t-analisis" class="hide"></section>
+
+<section id="t-nueva" class="hide">
+ <div class="card">
+  <h2>1. Datos de la publicación</h2>
+  <div class="row" style="margin-bottom:10px">
+   <div><label>Tipo de publicación</label><select id="f-modo"><option value="uno">Sobre un solo candidato</option><option value="varios">Con varios candidatos (ej: "¿quiénes podrían ser alcalde?")</option></select></div>
+   <div><label>Respuestas</label><select id="f-resp"><option value="si">Incluir respuestas</option><option value="no">Solo comentarios principales</option></select></div>
+  </div>
+  <div id="w-cands" class="hide" style="margin-bottom:10px">
+   <div class="card" style="background:var(--soft);border:0;margin-bottom:10px"><label>Texto de la publicación (para sacar los candidatos)</label>
+    <textarea id="f-post" style="min-height:120px" placeholder="Pega aquí el texto de la publicación, por ejemplo: ¿QUIÉNES PODRÍAN DISPUTARSE LA ALCALDÍA DE PEREIRA? ... JUAN PABLO GALLO – ..."></textarea>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn" id="b-det">Detectar candidatos</button><span class="muted" id="det-msg"></span></div>
+    <div id="det-res"></div></div>
+   <label>Candidatos que aparecen en la publicación</label><div id="f-cands" style="display:flex;flex-wrap:wrap;gap:6px 14px"></div>
+   <p class="muted" style="margin:6px 0 0">La app los busca por su nombre y por los apodos que registres en <b>Candidatos y fuentes</b> (ej: "Gallo", "Steven"). Entre más apodos, mejor detecta.</p></div>
+  <div class="row">
+   <div id="w-cand"><label>Candidato</label><select id="f-cand"></select></div>
+   <div><label>Fuente</label><div style="display:flex;gap:6px"><select id="f-fuente"></select><button type="button" class="btn sec" id="b-nf" style="white-space:nowrap">+ Nueva</button></div></div>
+  </div>
+  <div id="w-nf" class="hide card" style="background:var(--soft);border:0;margin:10px 0 0">
+   <div class="row"><div><label>Nombre de la página o grupo</label><input id="nf-nom" placeholder="Ej: Generación Al Aire"></div>
+   <div><label>Tipo</label><select id="nf-tipo"><option value="medio">Medio de comunicación</option><option value="grupo">Grupo comunitario</option><option value="candidato">Página del candidato</option></select></div>
+   <div><label>Municipio</label><input id="nf-mun" placeholder="Ej: Pereira"></div></div>
+   <div style="margin-top:8px"><button type="button" class="btn" id="b-nf-ok">Agregar fuente</button></div></div>
+  <div class="row" style="margin-top:10px">
+   <div><label>Fecha de la publicación</label><input type="datetime-local" id="f-fpub"></div>
+   <div><label>Fecha en que copiaste los comentarios</label><input type="datetime-local" id="f-fcap"></div>
+  </div>
+  <div class="row" style="margin-top:10px">
+   <div><label>Enlace o descripción (opcional)</label><input id="f-desc" placeholder="Ej: Publicación sobre posibles candidatos 2027"></div>
+  </div>
+ </div>
+ <div class="card">
+  <h2>2. Pega los comentarios</h2>
+  <p class="muted">Pega el texto tal como lo copiaste de Facebook. Los nombres se usan solo para separar respuestas y contar cuentas repetidas; luego se borran y se reemplazan por un código.</p>
+  <textarea id="f-texto" placeholder="Nombre&#10; ·&#10;Comentario&#10;Responder&#10;..."></textarea>
+  <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="b-proc">Procesar</button><span class="muted" id="proc-msg"></span></div>
+ </div>
+ <div class="card hide" id="preview">
+  <h2>3. Revisa y corrige</h2>
+  <div id="edit-banner" class="hide alert w"><span id="edit-msg"></span>
+   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sec" id="b-rebus">Volver a buscar con los candidatos marcados</button><button class="btn sec" id="b-cancel-ed">Cancelar</button></div></div>
+  <div id="prev-sum"></div><div id="otros-n"></div>
+  <div style="margin:8px 0"><label style="display:inline"><input type="checkbox" id="only-rev" style="width:auto"> Mostrar solo los que conviene revisar</label></div>
+  <div class="tbl"><table><thead><tr id="prev-head"><th>#</th><th>Comentario</th><th>Tono</th><th>Tema</th><th>Quitar</th></tr></thead><tbody id="prev-body"></tbody></table></div>
+  <div style="margin-top:12px"><button class="btn" id="b-save">Guardar medición</button></div>
+ </div>
+</section>
+
+<section id="t-mediciones" class="hide"></section>
+
+<section id="t-config" class="hide">
+ <div class="grid">
+  <div class="card"><h2>Candidatos</h2>
+   <div class="row"><div><label>Nombre</label><input id="c-nom"></div><div><label>Municipio</label><input id="c-mun" placeholder="Ej: Pereira"></div></div>
+   <div class="row" style="margin-top:8px"><div><label>Cargo</label><select id="c-car"><option>Alcaldía</option><option>Concejo</option><option>Gobernación</option><option>Asamblea</option></select></div>
+   <div><label>Otros nombres o apodos (separados por coma)</label><input id="c-alias" placeholder="Ej: Villafane, Valentina"></div></div>
+   <div style="margin-top:10px"><button class="btn" id="b-cand">Agregar candidato</button></div>
+   <div class="tbl" style="margin-top:12px"><table><tbody id="cand-list"></tbody></table></div>
+  </div>
+  <div class="card"><h2>Fuentes</h2>
+   <div class="row"><div><label>Nombre de la página o grupo</label><input id="s-nom"></div>
+   <div><label>Municipio</label><input id="s-mun" placeholder="Ej: Pereira"></div><div><label>Tipo</label><select id="s-tipo"><option value="grupo">Grupo comunitario</option><option value="medio">Medio de comunicación</option><option value="candidato">Página del candidato</option></select></div></div>
+   <div style="margin-top:10px"><button class="btn" id="b-fuente">Agregar fuente</button></div>
+   <p class="muted">Peso en el índice: grupo comunitario 1,0 · medio 1,0 · página del candidato 0,5 (sus seguidores inflan el resultado).</p>
+   <div class="tbl"><table><tbody id="fuente-list"></tbody></table></div>
+  </div>
+ </div>
+ <div class="card"><h2>Respaldo</h2>
+  <p class="muted">Los datos se guardan en este navegador. Descarga un respaldo cada semana para no perderlos.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sec" id="b-exp">Descargar respaldo (.json)</button><button class="btn sec" id="b-csv">Exportar comentarios (.csv)</button><label class="btn sec" style="margin:0;color:var(--acc)">Cargar respaldo<input type="file" id="b-imp" accept=".json" class="hide"></label></div>
+  <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><b>Empezar de nuevo las mediciones</b><div class="muted">Borra todas las mediciones y publicaciones guardadas, pero <b>conserva los candidatos, sus apodos y las fuentes</b>. Descarga un respaldo antes.</div>
+  <button class="btn sec" id="b-reset" style="margin-top:8px;color:var(--neg)">Borrar todas las mediciones</button></div>
+ </div>
+</section>
+
+<section id="t-ayuda" class="hide">
+ <div class="card"><h2>Cómo copiar los comentarios de Facebook</h2>
+  <ol>
+   <li>Abre la publicación en el <b>computador</b> y haz clic en la fecha para abrirla sola.</li>
+   <li>Cambia el filtro de <b>"Más relevantes"</b> a <b>"Todos los comentarios"</b>.</li>
+   <li>Aleja la pantalla con <b>Ctrl −</b> dos o tres veces.</li>
+   <li>Da clic en <b>"Ver más comentarios"</b> hasta que no aparezca, y en cada <b>"Ver X respuestas"</b> y <b>"Ver más"</b>.</li>
+   <li>Revisa otra vez desde arriba: a veces aparecen respuestas nuevas.</li>
+   <li>Selecciona todo el bloque de comentarios, copia (Ctrl+C) y pégalo en <b>Nueva medición</b>.</li>
+  </ol>
+  <h3>Buenas prácticas</h3>
+  <ul>
+   <li>Copia entre <b>24 y 48 horas</b> después de la publicación.</li>
+   <li>Mide a todos los candidatos en las <b>mismas páginas</b> y en el <b>mismo periodo</b>.</li>
+   <li>Si la publicación tiene más de 500 comentarios, toma todos los principales y solo las respuestas de los 10 más comentados.</li>
+   <li>Con menos de 100 comentarios la app marca la muestra como <b>insuficiente</b>.</li>
+  </ul>
+  <h3>Límites que hay que tener presentes</h3>
+  <ul>
+   <li>Quienes comentan en Facebook no son todos los votantes. Esto mide el <b>ánimo de la conversación</b>, no quién va a ganar.</li>
+   <li>En redes, los comentarios negativos suelen salir inflados.</li>
+   <li>Uso interno. No publiques estos resultados como encuesta.</li>
+   <li>No se guardan nombres ni fotos de quienes comentan.</li>
+  </ul>
+ </div>
+</section>
+
+</main>
+<div id="tip" role="tooltip"></div>
+<div id="modal" role="dialog" aria-modal="true"><div class="box" id="modal-box"></div></div>
+<footer>Radar Electoral · Módulo Opinión Digital v1 · Análisis de conversación digital – uso interno, no es encuesta</footer>
+
+<script>
+const SEED = {"sal": "rz11f6ad8e", "cands": [{"id": "c1", "nombre": "Luz Elena López", "mun": "Zarzal", "cargo": "Alcaldía", "alias": ["luz elena", "doña elena", "elenita"]}, {"id": "c2", "nombre": "Valentina Villafañe", "mun": "Zarzal", "cargo": "Alcaldía", "alias": ["villafane", "vellafane", "villa fane", "valentina"]}], "fuentes": [{"id": "f1", "nombre": "Fuente Zarzal (prueba inicial)", "tipo": "grupo", "mun": "Zarzal"}], "meds": [{"id": "m1", "cand": "c1", "fuente": "f1", "fpub": "", "fcap": "2026-11-05T11:37", "desc": "Prueba inicial · publicación sobre posibles candidatos", "reac": {}, "coms": [{"a": "C3e05fb9", "t": "Es la mejor opción", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "Caf77fcb", "t": "la bruja esa para robar será la mejor opción", "r": true, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "C9e49f07", "t": "👏👏👏👏", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "H"}, {"a": "C96a1311", "t": "Es mejor viejo conocido que malo por conocer", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "?"}, {"a": "Cc90acb0", "t": "Fue buena alcaldesa le cambió la cara a zarzal con los parques aún que el Santander se apagó por falta de vendedores ambulantes y bancas para uno sentarse pero tuvo un cambio y se vio algo de orden en su mandato. No es mi candidata pero se debe de decir que fue buena alcaldesa solo que a los zarzaleños queremos hacer lo que queramos y saltarnos las leyes y el orden.", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "H"}, {"a": "C1e5c6d2", "t": "si es verdad todo hay que decirlo", "r": true, "tono": "P", "th": null, "x": false, "min": null, "g": "H"}, {"a": "Cbef001a", "t": "uy sii, no se veía tanta gamineria con esa bulla en los establecimientos de venta de licor", "r": true, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "C3355830", "t": "si tú tienes la razón fue buena alcaldesa pero hay que darle la oportunidad a otros pienso yo", "r": true, "tono": "N", "th": "R", "x": false, "min": null, "g": "M"}, {"a": "C511fd72", "t": "lo único que hizo andenes pa que colocarán tomaderos. Y metieran vicio.", "r": true, "tono": "N", "th": "G", "x": false, "min": null, "g": "M"}, {"a": "Ccbb3c23", "t": "que parque tan feo solo tiene la entrada para la alcaldía es un parque sólo nadie lo atraviesa", "r": true, "tono": "N", "th": "G", "x": false, "min": null, "g": "H"}, {"a": "Cc90acb0", "t": "lo malo fue que no le hizo casetas para los vendedores ambulantes ni sillas para sentarse. Eso hizo que el parque se volviera solitario. La administración pasada le dieron algo de vida con las iguanas y esta administración con las casetas medio le dio vida. Pero aún le falta que dejen los ambulantes para que la gente vuelva como años antes.", "r": true, "tono": "U", "th": "X", "x": false, "min": null, "g": "H"}, {"a": "C9aa4459", "t": "Mucho que agradecer a está dama que me permitió crecer, que creyó en mi Dios bendiga su camino.", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "H"}, {"a": "C50a8199", "t": "Que gran opción para Zarzal, si, hay ciertos comentarios negativos, quizás por desconocimiento o ignorancia sobre la gran gestión que hizo durante su período 2016-2019, donde después de tantos años se vieron grandes obras. Zarzal necesita una persona que sepa como administrar un municipio, que tenga capacidad de gestión y capacidad de resolver. Siempre le tiran piedras al árbol que da mas sombras. Dios los bendiga a todos", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "H"}, {"a": "Cf6360b2", "t": "yo, si quisiera ver las obras que hayan traído progreso y desarrollo al municipio. No he visto al primer alcalde, que haya traído una empresa que genere empleo, solo repartición del erario público para quien han estado en la rosca. Zarzal, cruce de todos los caminos, pero no tiene políticos que la quieran. Porque no se cuenta con un acueducto que genere agua en abundancia para montar empresas, ni alcantarillado, dónde una llovizna genera inundaciones o respiración de las aguas negras emergiendo por las recamaras, constructoras construyendo viviendas, sin alcantarillado de aguas lluvias, concejales que solo aprueban créditos a los Alcaldes, y esa inversión no se ve.", "r": true, "tono": "N", "th": "G", "x": false, "min": null, "g": "H"}, {"a": "C50a8199", "t": "Claro que, la remodelacion de 5 parques en cierta parte ayudan a que el municipio tenga progreso en varios factores. La construcción de la plazoleta de comidas, la casa de la cultura y el bulevar también son de esas obras que teniendo un poco de sentido común pueden generar progreso. Hay unas empresas que en ese periodo 2016-2019 tuvieron acercamientos con la administración tales como una ensambladora y una empresa de plantas medicinales, se dejaron muchos puntos adelantados, solo que las administraciones posteriores no le pusieron cuidado al tema.", "r": true, "tono": "P", "th": null, "x": false, "min": null, "g": "H"}, {"a": "C6e3ca8d", "t": "Huy no mete otros 200 agentes de tránsito jajajajjaj", "r": false, "tono": "N", "th": "G", "x": false, "min": null, "g": "H"}, {"a": "C98d7587", "t": "Jamás esa señora", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "C6945fb6", "t": "Villamil se quejan que el pueblo es un desorden,les ponen control y todo lo ven mal.", "r": true, "tono": "P", "th": null, "x": false, "min": null}, {"a": "C6e3ca8d", "t": "el problema no es que se coloque orden el problema es que lo vuelven negocio", "r": true, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "Ce5f7edb", "t": "Cómo dice Karol G, Mk yaaa", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "Cf2620bc", "t": "Q pereza con esa señora sele sube el cargo demasiado y cuando uno va donde ella ala alcaldía y la forma de atender como es de grosera y mucha humillación con las personas yo tuve esa experiencia con ella", "r": false, "tono": "N", "th": "T", "x": false, "min": null, "g": "H"}, {"a": "C13c04df", "t": "Ha hecho mas FINURITA por el pueblo que todos los alcaldes de la historia de zarzal.", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "?"}, {"a": "C223b2d0", "t": "muy cierto que se lance finurita", "r": true, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "Ca3f98c3", "t": "pues si pero la gente se vende por 50 mil pesos así que a finurita no lo suben así queramos pero hay que ser r alistas", "r": true, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "C21fecc3", "t": "total", "r": true, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "C5916d94", "t": "Nooo pero cuántas quemadas más", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "C3ddd941", "t": "Es la única que tiene más comentarios, y la mayoría son de rechazo. Sé que esto es una especulación, pero vea lo que la gente está comentando y piénselo bien antes de postularse como candidata a la Alcaldía, porque podría terminar quemándose políticamente. Usted ha sido una de las peores dirigentes que hemos tenido. Han pasado malos dirigentes, pero su gestión ha sido, sin duda, de las más cuestionadas y decepcionantes.", "r": false, "tono": "N", "th": "G", "x": false, "min": null, "g": "M"}, {"a": "Cda4e587", "t": "Se ve que ese cargo es bastante sustancioso que muchos lo desean e inclusive quieren volverlo a repetir", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "C8ed9eca", "t": "claro,por algo lo pelean, para llenarce sus bolsillos, no más ellos, y las familias, 😡", "r": true, "tono": "N", "th": "C", "x": false, "min": null, "g": "M"}, {"a": "C198a58d", "t": "Cuando quieran subir pintan color de rosa y están en el poder y se cagan en el pueblo", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "C10ead47", "t": "Ha descansar ya q más va robar", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "C0b282df", "t": "No se porque esa teta da tanta leche les gusta tanto y no hacen nada que sirva llegan es a llenar sus bolsillos", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "C551e506", "t": "Ah! , no jodass😒", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "C93e3968", "t": "Uyyyyyyy nooo salvanos señor 😂😂😂😂", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "C6945fb6", "t": "usted de casualidad sabe que zarzal no tiene acueducto?", "r": true, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "C26dbfe1", "t": "JAJAJA ella jura", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "C0a0ae54", "t": "No es buena idea,la primera ves robo mas de lo que debia", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "C13a3cb5", "t": "Hizo muy buenas obras, pero ya cumplió su ciclo", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C7b9ead1", "t": "como cuáles?", "r": true, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "C55d6e7a", "t": "Hay que darle la oportunidad a la gente joven. Los viejos tienen muchas mañas🥚🥚🥚", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "?"}, {"a": "C82dab0f", "t": "Yo no digo nada, por que si tengo mucho que agradecerle a Doña Luz Elena Lopez antes le deseo muchas bendiciones siempre.✨️🙏🏻👏🏻 Muy bella persona, y yo se que si uno necesita de ella, lo hace de buen corazón 👌🏻✨️♥️👏🏻🙏🏻", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "C0b94df3", "t": "DIOS permita que el municipio de ZARZAL elija una gran mujer de autoridad,liderazgo,mujer de cumplir con la comunidad los proyectos propuestos.La necesitamos doña Elena creo que si es la Alcaldesa 2028-2012", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "Cdf8afe6", "t": "Meros ladrones y rosca es lo que suben a la alcaldía de nuestro pueblo Las ayudas de los.humildes se las cogen para ellos o si familia descarados Ah y nunca hacen nada por la seguridad del pueblo todo queda enpune nadie sabe nada 😐🤣", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "M"}, {"a": "C7b9ead1", "t": "No por favor, suficiente.", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "C310eaaa", "t": "😂😂😂😂. Jajaja Que pecaito y hay gente que todavía sigue creyendo😂😂😂😂", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "Cea35b23", "t": "Para que?", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "C64e8ea4", "t": "Hay que pensar en la Juventud a ver si cambia un poquito el pueblo, porque siempre eligiendo a las mismas RATAS De Siempre..👌🏻👌🏻👌🏻👌🏻", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C0b94df3", "t": "❤️", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "Cfd4d9a1", "t": "Repetir nooo Quiere ser candidata que es diferente Esa señora ya nooo", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C833ab57", "t": "Tu hora ya paso mi señora", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "Cb0e2b1e", "t": "No sirvio ni pa estorbar", "r": false, "tono": "N", "th": "G", "x": false, "min": null, "g": "?"}, {"a": "C0b282df", "t": "No que tal llegue gente nueva agan algo bueno Daniel hace nada que sirva", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C6e18e28", "t": "Jamas la daña parques", "r": false, "tono": "N", "th": "G", "x": false, "min": null, "g": "H"}, {"a": "C94c64c2", "t": "Excelente para que nuestro pueblo procrece y se vea mejor en todo en economía, en educación en cultura que se ha perdido y en obra de inversión social", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "C69160d0", "t": "A un q todos van por lo mismo pero darle ls oportunidad a otra persona seria una bna opción", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C6bfdd08", "t": "No más", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "C250bc86", "t": "Sson de que", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "C1da8aa8", "t": "Votaría una y mil veces con la doctora luz elena .🙏total apoyo 🙏💪", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "C243fb29", "t": "Fue y será buena alcaldesa es la mejor opción", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "H"}, {"a": "Ce80f495", "t": "Nad", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "H"}, {"a": "C033d47f", "t": "Villafane", "r": false, "tono": "N", "th": "V", "x": false, "min": null, "g": "H"}, {"a": "C6de7fb5", "t": "👏👏👏👏👏", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "H"}, {"a": "C8821a18", "t": "👏👏👏", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "C44dc5bb", "t": "JAMÁS", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "C3b02a2e", "t": "😂", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "Ccea95dc", "t": "👏", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "Cd762116", "t": "😂", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "H"}, {"a": "Ccea95dc", "t": "👏", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "C0b94df3", "t": "❤️", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "Cccaaf0a", "t": "Uyy nooo otra vez nooooo. Muy mal", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "C8909aca", "t": "Huy no que tal para que", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "C4971b5a", "t": "Las mismas con lo mismo toca darle la oportunidad a gente nueva que reforme el municipio", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C3ddd941", "t": "Uy noooooooooooooooooo", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "Cb38e5b0", "t": "Ya cumplió su ciclo.", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "M"}, {"a": "C145b7d7", "t": "Uuyy no para que dañe más el parque", "r": false, "tono": "N", "th": "G", "x": false, "min": null, "g": "M"}, {"a": "C3b4d442", "t": "Ya tuvo su oportunidad y nada que ver , éxitos dedíquese a otra cosa ya porfavor", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C8ab8fdf", "t": "Nuestra mejor opción para recuperar de nuevo las obras de nuestro zarzal 👏🏻👏🏻", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "C47c98e3", "t": "La mejor opción para votar es Valentina Villafañe ✊🏻💪🏻", "r": false, "tono": "N", "th": "V", "x": false, "min": null, "g": "M"}, {"a": "C110df49", "t": "Noo ni por el putas ay mucha gente que de verdad quiere robar mas digo trabajar mas ja ja ja ja", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "C081296f", "t": "Dios nos libre ,no tienen llenadero", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "C658e804", "t": "O PARA robar como al caldesa notiene nada grosera conla jente eya dise que apor yoseros noleda nada", "r": false, "tono": "N", "th": "T", "x": false, "min": null, "g": "M"}, {"a": "C4799710", "t": "Jum", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "H"}, {"a": "Ce9d871f", "t": "La mejor para recuperar a zarzal De nuevo las obras de nuevo la inversion social", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "H"}, {"a": "C8821a18", "t": "Bravo", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "C0d33323", "t": "Hay mucha gente joven y otra forma de ver las cosas ella ya cumplió su ciclo deje que los demás tengan oportunidad", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C437afd9", "t": "Ya se le acabó la plática que quiere volver jajajaja", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "M"}, {"a": "Cd60e219", "t": "Dice que de la Paila no quiere saber y nosotros menos fuera 😄😄", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "C31889a2", "t": "No ya está sra demostró que pasa cuando ella sube al poder se olvida delos que a hora saluda jajaja jajaja", "r": false, "tono": "N", "th": "T", "x": false, "min": null, "g": "H"}, {"a": "Cc02916b", "t": "Nunca quiero otro ladrón😂", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "M"}, {"a": "C2cbad85", "t": "Uy no, Dios nos libre de esa señora 🙄", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "Ce4e215e", "t": "En zarzal hay mucha gente joven y profesionales para que tomen el rumbo de la administración y puedan hacer una labor por nuestro municipio", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C2d04dbe", "t": "Lo que no sirve que no estorbe 🔥", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "C10847eb", "t": "Noooo....ya no más", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "Cb00da71", "t": "No repetir no", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "M"}, {"a": "C54996e6", "t": "Ya tuvo su tiempo", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C1e5c6d2", "t": "Fue excelente alcaldesa hizo bien su gestión.", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "H"}, {"a": "C56bc2e3", "t": "Mejor no opino oiga 😢", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "C75bbbca", "t": "Sinceramente ojalá que no esa señora no aporta nada bueno para el pueblo y también estoy de acuerdo hay muchas personas jóvenes que merecen esa oportunidad y tener un mejor municipio para todos nosotros 🫶🙏", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "M"}, {"a": "C9439c54", "t": "Jamás . Commmmmmmm", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "?"}, {"a": "C53423ec", "t": "Hay gente nueva hay que actualizarse ya ella estubo que de la oportunidad a otros", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C6ace2b7", "t": "Yo creo que la mejor opción es Lula 😂😂😂", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "H"}, {"a": "C0c1da2b", "t": "👏huy no ojalá que no bien mal que administro la alcaldía y fuera de eso Quito todos los puestos de comida ala gente de bajos recursos", "r": false, "tono": "N", "th": "G", "x": false, "min": null, "g": "M"}, {"a": "C21fecc3", "t": "Se le acabo la plata que viene por más", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "M"}, {"a": "C3355830", "t": "No me parece para que ❓", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "C64c5b9d", "t": "Si Valentina villafañe", "r": false, "tono": "N", "th": "V", "x": false, "min": null, "g": "M"}, {"a": "Cbafc69a", "t": "Dra Luz Elena le deseo muchos éxitos en este nuevo propósito de aspirar nuevamente a la alcaldía. Estoy segura de que la experiencia, el conocimiento y el compromiso con su municipio son grandes fortalezas para continuar trabajando por el bienestar de la comunidad. Que Dios ilumine cada uno de sus pasos y le conceda sabiduría y fortaleza para afrontar este nuevo reto. Muchos éxitos en este camino!", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "Cf2617ec", "t": "No hizo nada en su mandato como pide ser reelecta , el sinismo en pasta", "r": false, "tono": "N", "th": "G", "x": false, "min": null, "g": "H"}, {"a": "C8e96f9b", "t": "Firmes porla plata tiene la raya del tigre La derecha son esclavistas y ladrones hay que botar por el progresismo por la izquierda total apoyó como próxima Alcaldesa VaLENTINA VILLAFAÑE total apoyó", "r": false, "tono": "N", "th": "V", "x": false, "min": null, "g": "H"}, {"a": "C397716d", "t": "Jamas no se a cordo que avía jente pobre por la barriante en los barrancos", "r": false, "tono": "N", "th": "G", "x": false, "min": null, "g": "M"}, {"a": "C4ea8964", "t": "Y tanta gente joven, talentosos, con ideas futuristas….. ! Los que fueron dejarlos pasar, se necesitan mentes sabias, constructivas y honestos!", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "M"}, {"a": "Cd2ef2a2", "t": "Hay q dejar que otro robe😂", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "?"}, {"a": "Ca3f98c3", "t": "Pues sería bueno que llegara una cara nueva y que realmente se preocupe por el municipio", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "M"}, {"a": "Cd3b53e4", "t": "Con todo el respeto qué se merece la candidata a la alcaldía ya tuvo su momento y es hora de ver otros candidatos con ideas y propuestas nuevas.", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "Cf160eee", "t": "Muchas. Gente. Nueva. Pare. Algo. Nuevo", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "M"}, {"a": "Cc05815f", "t": "Si nuevos", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "M"}, {"a": "Cc354c31", "t": "Jummmm", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "C389c799", "t": "Cuchos y muchas de Zarzal den la oportunidad a los jóvenes que vienen expresando inconformismo en el manejos del pueblo dulce no amarguen ni prolonguen la decadencia de Zarzal probemos con gente joven además muy preparada", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C81ce709", "t": "Que vaya a peinar Morrocoy", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "C2b71096", "t": "Quiere más plata jum", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "M"}, {"a": "Cf6360b2", "t": "Me parece bien, que esa muchacha Valentina, sea alcalde. Será la esperanza del municipio y sus habitantes.", "r": false, "tono": "N", "th": "V", "x": false, "min": null, "g": "H"}, {"a": "Cc0d46a5", "t": "Huy nooo", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "C9d994ad", "t": "Si la señora se quiere volver a lanzar, lo puede hacer, o se les olvida que el alcalde se lanzó 3 veces antes de ser elegido? Y también se les olvida que lo escogieron por pesar? Dicen que la señora robó, probablemente, pero ha sido la única administración en la que se vio el dinero invertido en infraestructura e inversión social, o que hizo Maria Alejandra Perdomo? o Maria Teresa Giraldo? entonces hay que comparar y ver en cual si se vieron por lo menos un poco de obras.", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "H"}, {"a": "C180e15d", "t": "Ya esta muy quemada", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "?"}, {"a": "Cd30bca5", "t": "El GIF High Five Praying Hands Sticker by imoji puede contener transparent, emoji, hand, hands, high five, pray, want, blessed, need, good luck, prayers, praying hands, good luck today, blssd y #blssd", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "C130510d", "t": "No más de lo mismo", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C4c8c021", "t": "Huy no noooo", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "Cb628399", "t": "Vamos con las nuevas generaciones sin tapujos a poyo mío total Valentina villa fañe", "r": false, "tono": "N", "th": "V", "x": false, "min": null, "g": "H"}, {"a": "C63fa121", "t": "Mi bella y admirable Dra. Luz Elena", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "Cdec2c12", "t": "Otra. Ves jajajaja no se cansan de sacudir esa alcaldía", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "Cce89cbd", "t": "Votar por gente joven con ideas nuevas", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C1de3a59", "t": "Muy buena idea Luz Elena te apoyo", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "Cce26fa0", "t": "Huyyyy no Gracias Más obras inconclusas Ya tubo su cuarto de hora", "r": false, "tono": "N", "th": "G", "x": false, "min": null, "g": "H"}, {"a": "C8aa4746", "t": "Muy. Buena. La. Teta si", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "Cfd098db", "t": "EXELENTE PERSONA", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "C86d3127", "t": "Vamos con Villafañe pacto histórico", "r": false, "tono": "N", "th": "V", "x": false, "min": null, "g": "H"}, {"a": "C7271664", "t": "Excelente, vamos con toda🙏🏼💪🏼", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "Caaca8d7", "t": "Por favor demosle la oportunidad a la gente joven. Ella como muchos, ya estuvieron y no hicieron nada.", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C27c7b89", "t": "Exelente alcaldesa voy con todo", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "Cf3ee44e", "t": "Intachable", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "H"}, {"a": "C7914ebe", "t": "Eres la mejor y así va ser", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "H"}, {"a": "C3d024fe", "t": "Yo creo que ya tuvo su oportunidad, necesitamos ideas nuevas y frescas", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C8ed9eca", "t": "huy no ya no de lo mismo, ya comio,esa señora,que pereza 😡", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "Cc37ca77", "t": "Villafañe", "r": false, "tono": "N", "th": "V", "x": false, "min": null, "g": "M"}, {"a": "C0825e84", "t": "Demos oportunidad a las nuevas generaciones está niña vellafañe oriunda de la Paila seguidora de los problemas de comunidad paileña la juventud tiene la palabra..y como dise el disco de José José.(Ya lo pasado...pasado...porque se vuelven vitalicios en los cargos..", "r": false, "tono": "N", "th": "V", "x": false, "min": null, "g": "H"}, {"a": "Cd4d447b", "t": "Lo pasado pasado hay más candidatos", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "M"}, {"a": "C2fc676b", "t": "Eso paque", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "?"}, {"a": "Cfd42f43", "t": "Ningún Ningún", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "Cfb0c746", "t": "Jajaajja si si será alcaldesa de la yuca jajaa", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "C4a729d5", "t": "Claro que si mi docto dios la bendiga", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "H"}, {"a": "Cee991a0", "t": "Otra vez no", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C99e8494", "t": "Quedo amañada se ve que la teta del municipio es buena", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "C88b1efa", "t": "Solo pacto histórico no queremos de lo mismo", "r": false, "tono": "N", "th": "V", "x": false, "min": null, "g": "H"}, {"a": "Ca4838e7", "t": "Ay nooo ya está muy cucha...ya q se pensione", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C3726f1a", "t": "Uyyy nooo", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "Cb307d71", "t": "Todo es posible Puede ser un dibujo de esbirros y texto", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "H"}, {"a": "C6fb15d8", "t": "😬", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "H"}, {"a": "C70f07f1", "t": "👏👏👏👏👏👏👏", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "Caf9cabe", "t": "😮😮😮", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "C787f353", "t": "👏", "r": false, "tono": "P", "th": null, "x": false, "min": null, "g": "M"}, {"a": "C2bf0bff", "t": "😂😂😂😂😂", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "Cc310e31", "t": "😂", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "Ca26e7e8", "t": "Yo pienso q en la política se debe acabar ese vicio heredable de la batuta ,por q hay jóvenes q vienen con nuevas propuestas y una forma diferente de ver las cosas ,a ver si avanzamos por fin", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "Cf2617ec", "t": "Hay que votar por Valentina Villafañe, no más de los mismos que solo saben llenarse los bolsillos del dinero público", "r": false, "tono": "N", "th": "V", "x": false, "min": null, "g": "H"}, {"a": "Caf9cabe", "t": "Se le debe dar la oportunidad a nuevas propuestas.", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "M"}, {"a": "C69ff28a", "t": "Dios nos libre", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "C90c6098", "t": "Otros nuevos de Len la oportunidad si no hicieron antes ahora menos", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "?"}, {"a": "C6173db2", "t": "No tienen llenadero", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "C88bd8a8", "t": "Puede ser una imagen de bebida y texto", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "C88bd8a8", "t": "Puede ser una imagen de texto", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "C88bd8a8", "t": "Puede ser una imagen de texto", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "Cd46e110", "t": "Firm clp", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "H"}, {"a": "C5bea7af", "t": "Si ah bueno!", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "?"}, {"a": "Ca6ea42f", "t": "Ole no hay candidatos nuevos para q esa gente q ya estubo hay", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C515cd27", "t": "Otra vez no jodas debería existir una ley para que esos que ya fueron alcaldes no jodan más, parecen esas profesoras pensionadas que no quieren dejar el cargo y darle oportunidad a las nuevas generaciones con ideas nuevas", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "?"}, {"a": "Ce4e215e", "t": "Todos vivimos y estuvimos presentes de la administración de la soberbia el odio el despilfarro y la falta de socializacion con el pueblo hacer obras por hacerlas y no contar con la opinión del pueblo no es saber.gobernar", "r": false, "tono": "N", "th": "T", "x": false, "min": null, "g": "H"}, {"a": "C1374efd", "t": "No no vovete sería Elenita ni charlando. Qué son ésas charlas tan pesadas. Ni riesgos.", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "Cf2dbf5f", "t": "Le recomendaria que haga un curso de buen manejo de lenguaje castellano y de lss formas o modales oirla hablar de pena ajena y se enferma de poder, se le sube a ls cabeza y maltrata los funcionarios, y de las obras lo que todos vemos, un municipio rezagado.", "r": false, "tono": "N", "th": "T", "x": false, "min": null, "g": "M"}, {"a": "Cbca0626", "t": "Noooo, ni por el put@s 😬😬😬😬😬", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "Cd8f6500", "t": "No le basto con la plata que se robó cuando fue alcaldesa y ahora quiere volver a robar, ya se le acabó la plata o que, Dios nos libre de esa mujer", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "Cce26fa0", "t": "Haaaaa que a vallejuelo no valla ha llegar aún estamos esperando el sancocho en esa cancha de fútbol que dejaron a medias de verdad que se nesecita mucha cara dura para salir apostularce de nuevo en un mandato Que ni Vega de verdad", "r": false, "tono": "N", "th": "G", "x": false, "min": null, "g": "H"}, {"a": "C1d3fa6a", "t": "En serio. Pero que ganas de seguir, si no fueron capaces en 4 años que van a cambiar en 4 más.", "r": false, "tono": "N", "th": "G", "x": false, "min": null, "g": "H"}, {"a": "C19970b9", "t": "No esa señora es muy petulante y grosera, yo trabajé en.la administración de ella y la experiencia fue muy desagradable, llegaba a las oficinas y no saludaba y el que le caía mal lo ultrajaba y no le colabotaba a uno con nada. En pocas palabras no sirve.", "r": false, "tono": "N", "th": "T", "x": false, "min": null, "g": "H"}, {"a": "C6ab52a3", "t": "Jummmm la verdad ya está señora cumplió su ciclo ya es hora que deje de desangrar a zarzal como lo hace con la caja menor en el San Rafael", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "M"}, {"a": "C699405f", "t": "Ay no, cansona 😂", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "Ceb9af8a", "t": "El agua elpaque todos feos mucha platica que da el pueblo", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "M"}, {"a": "C0a88a32", "t": "Hay que darle la oportunidad a la juventud de le la oportunidad a VALENTINA VILLAFAÑE, ya ustedes exalcaldes ya suelten esa teta que tanta leches les dio haber si con la juventud que tienen nuevas ideas sacan a zarzal adelante y haber si terminan ya de pavimentar las calles de ya que dejaron fue mamando al pueblo zarzaleño con la ilusión de pavimentar todas las calles y nos dejaron fue mamando prometen de todo cuando se acercan las elecciones y después nos dan una patada en el c******", "r": false, "tono": "N", "th": "V", "x": false, "min": null, "g": "M"}, {"a": "C6cf785f", "t": "Otra vez quiere robar mas el municipio.ya dedíquese mas bien a vivir su vejez.", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "C12fd788", "t": "Ojo con esto si quieren volver a repetir alcaldia deben hacer una buena administracion prometen y no cumplen con los animales ninguno a hecho nada tantos que hay en la calle aguantando hambre frio calor desprercios malos tratos asi que los veo a ver que van hacer con ellos somos muchos animalistas sino no hay botos escumpliendo", "r": false, "tono": "U", "th": "X", "x": false, "min": null, "g": "M"}, {"a": "C21fecc3", "t": "Eso ni pa estorbar sirve", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "C114dfe3", "t": "huyno ni por el putas que pereza con ese personaje", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "M"}, {"a": "C965643c", "t": "Gente nueva por favor, estos vejetes no se cansan de robar, son sin llenadero", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "?"}, {"a": "Cfe04768", "t": "pINCHE VIEJA LOCA", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "C1c84deb", "t": "No señor hay que darle la oportunidad a otros para que sigan robando", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "Cbd5d1f4", "t": "NO..NO..YA NO MAS DE LOS MISMOS ZARZAL NECESITA GENTE JOVEN QUE LLEGUEN CON NUEVAS ESPECTATIVAS..A PONER ORDEN ..NO A DAÑAR LO QUE OTR@S YA HICIERON..YA DIO LO QUE PUEDO. QUE SE QUEDE DESCANSANDO BIEN RELAJADA EN SU CASA 🏡", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "M"}, {"a": "Cf987c3b", "t": "Ella quito los vendedores anbulantes ella tambien viene de abajo pero no alluda alos pobres", "r": false, "tono": "N", "th": "G", "x": false, "min": null, "g": "M"}, {"a": "C1901965", "t": "Terrible!", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "C6ee156c", "t": "Esa señora prepotente jamas", "r": false, "tono": "N", "th": "T", "x": false, "min": null, "g": "M"}, {"a": "Caf77fcb", "t": "Esa bruja ni a la esquina", "r": false, "tono": "N", "th": "S", "x": false, "min": null, "g": "H"}, {"a": "C5374a6d", "t": "LAS OPORTUNIDADES ..SON PARA LA GENTE NUEVA .JOVEN si el q tuvo el poder no lo supo ADMINISTRAR ..y solo aprovecho el 4 de hora .......pues la historia y los hechos HABLARAN SOLOS .....lo q siembras recojes ...Si el pueblo estuvo conforme ..pues puede darse lo q se pide......si el pueblo se sintio engañado ..pues ....los ciclos deben cerrarse", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "C84337a7", "t": "Ya tubo su oportunidad por q es tan egoísta deje q otro robe q para todos hay llenas sus arcas y quieren volver x más dece x bien servida", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "C493ac92", "t": "No le alcanzó la re plata que se robó y quiere más", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "Ce4e215e", "t": "Zarzal con el presupuesto que tiene y los impuestos de riopaila colombina y las grandes hdas debería ser el municipio mas prospero de la región pero la corrupción no lo ha dejado prosperar", "r": false, "tono": "N", "th": "C", "x": false, "min": null, "g": "H"}, {"a": "C298d356", "t": "Hay que darles la opurtunidad a otros nuevos que quieren llegar a la alcaldía Aver si esto cambia pero siempre los mismos noooo que vaina", "r": false, "tono": "N", "th": "R", "x": false, "min": null, "g": "H"}, {"a": "Cd651d06", "t": "La verdad ella es muy grosera , que es lo menos que debería de ser", "r": false, "tono": "N", "th": "T", "x": false, "min": null, "g": "M"}, {"a": "Cab1434f", "t": "No sean masoquistas si no funcionó a la primera entonces la segunda no vale vienes a hacer desastres más del que hay en el momento", "r": false, "tono": "N", "th": "G", "x": false, "min": null, "g": "M"}]}]};
+const KEY='radar_opinion_v1';
+const PESO={grupo:1,medio:1,candidato:0.5};
+const TIPO={grupo:'Grupo comunitario',medio:'Medio de comunicación',candidato:'Página del candidato'};
+const TEMAS_N={R:'Cansancio / renovación',C:'Corrupción y plata',G:'Gestión y obras',T:'Trato y actitud',V:'Apoyo a otra persona',S:'Rechazo sin argumento'};
+const TEMAS_P={O:'Obras y gestión',A:'Persona / agradecimiento',D:'Apoyo directo'};
+const TEMAS_U={X:'Sin tema'};
+const TONO={P:'Positivo',N:'Negativo',U:'Neutro'};
+let DB;
+function load(){try{const s=localStorage.getItem(KEY);if(s){DB=JSON.parse(s);DB.grupos=DB.grupos||[];DB.cands.forEach(c=>c.alias=limpiarAlias(c.alias||[],c.nombre));return}}catch(e){}DB=SEED?JSON.parse(JSON.stringify(SEED)):{cands:[],fuentes:[],meds:[],sal:Math.random().toString(36).slice(2)};
+ DB.meds.forEach(m=>m.coms.forEach(c=>{if(!c.th)c.th=tema(c.t,c.tono,cand(m.cand))}));DB.grupos=DB.grupos||[];save()}
+const PEREIRA=[
+ {nombre:'Steven Cárdenas',alias:['steven','steven cardenas','cardenas','stiven']},
+ {nombre:'Juan Carlos Valencia Montoya',alias:['juan carlos valencia','jc valencia','valencia montoya']},
+ {nombre:'Cristian Toro Calle',alias:['cristian toro','toro calle','christian toro']},
+ {nombre:'Jorge Mario Trejos Arias',alias:['trejos','jorge mario trejos','jorge mario']},
+ {nombre:'Alejandro García Ríos',alias:['alejandro garcia','garcia rios','alejo garcia']}];
+function asegurarPereira(){let n=0;PEREIRA.forEach(p=>{const x=buscarRegistrado(p.nombre,'Pereira');if(x&&norm(x.mun||'')==='pereira'){x.alias=limpiarAlias([...new Set([...(x.alias||[]),...p.alias])],x.nombre);return}
+  DB.cands.push({id:uid(),nombre:p.nombre,mun:'Pereira',cargo:'Alcaldía',alias:limpiarAlias(p.alias,p.nombre)});n++});return n}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){alert('No se pudo guardar en el navegador. Descarga un respaldo.')}}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const cand=id=>DB.cands.find(c=>c.id===id)||{nombre:'?',alias:[]};
+const fuente=id=>DB.fuentes.find(f=>f.id===id)||{nombre:'?',tipo:'grupo'};
+const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+function hash(s){let h=2166136261;for(const ch of (DB.sal+s)){h^=ch.codePointAt(0);h=Math.imul(h,16777619)}return 'C'+(h>>>0).toString(36)}
+
+/* ---------- Lectura del texto de Facebook ---------- */
+const JUNK=/^(·|editado|ver traducci[oó]n|me gusta|responder|compartir|ver m[aá]s.*|ver \d+ respuestas?.*|ver todas las \d+ respuestas.*|ocultar.*|autor|fan destacado|top fan|seguir|\d+)$/i;
+const TIEMPO=/^(\d+)\s*(min|h|d|sem|a)\.?$/i;
+function parse(txt){
+ const lines=txt.replace(/\r/g,'').split('\n');const blocks=[];let cur=[];
+ for(const l of lines){if(l.trim().toLowerCase()==='responder'){blocks.push(cur);cur=[]}else cur.push(l)}
+ if(cur.join('').trim())blocks.push(cur);
+ const out=[];let pendingTime=null;
+ for(const b of blocks){
+  const clean=[];let age=null;
+  for(const raw of b){const l=raw.trim();if(!l)continue;const tm=l.match(TIEMPO);if(tm){age=toMin(+tm[1],tm[2]);continue}if(JUNK.test(l))continue;clean.push(l)}
+  if(clean.length<2){if(clean.length===1&&out.length)/*línea suelta*/;continue}
+  out.push({name:clean[0],text:clean.slice(1).join(' '),age})
+ }
+ // respuestas: el texto empieza con el nombre de otra persona del hilo
+ const names=[...new Set(out.map(o=>o.name))].sort((a,b)=>b.length-a.length);
+ out.forEach(o=>{for(const n of names){if(n!==o.name&&o.text.startsWith(n+' ')){o.reply=true;o.text=o.text.slice(n.length+1).trim();break}}});
+ return out
+}
+function toMin(n,u){u=u.toLowerCase();return u==='min'?n:u==='h'?n*60:u==='d'?n*1440:u==='sem'?n*10080:n*525600}
+
+
+/* ---------- Reconocer candidatos en un texto (nombre, apellido o combinaciones) ---------- */
+const PARTS=new Set(['de','del','la','las','los','y','san','santa']);
+const COMUNES=new Set(['toro','gallo','rios','rio','leon','rosa','flores','castillo','cruz','paz','luna','campo','prado','sol','sierra','vega','mora','pena','luz','rey','reyes','santos','angel','angeles','blanco','moreno','marin','caro','franco','valencia','paola','victoria','esperanza','gracia','fe','amor','bueno','nieves','salazar','cordero','lobo','oso','palma','pinto','rico','soto','ramos','mesa','torres','montes','pardo','rojas','duque','conde','delgado']);
+function tokNombre(c){return norm(c.nombre).split(/\s+/).filter(w=>w.length>=3&&!PARTS.has(w))}
+function lev1(a,b){if(Math.abs(a.length-b.length)>1)return false;let i=0,j=0,d=0;while(i<a.length&&j<b.length){if(a[i]===b[j]){i++;j++;continue}if(++d>1)return false;if(a.length>b.length)i++;else if(b.length>a.length)j++;else{i++;j++}}return d+(a.length-i)+(b.length-j)<=1}
+function hacerBuscador(cs){const dueno={};cs.forEach(c=>tokNombre(c).forEach(w=>{(dueno[w]=dueno[w]||new Set()).add(c.id)}));
+ const frases=cs.map(c=>{const w=tokNombre(c),f=[norm(c.nombre)];for(let i=0;i<w.length;i++)for(let j=i+1;j<w.length;j++)f.push(w[i]+' '+w[j]);(c.alias||[]).forEach(a=>f.push(norm(a)));return {c,f:[...new Set(f)].filter(Boolean).sort((a,b)=>b.length-a.length)}});
+ const f=function(text){const t=norm(text);const pal=[...t.matchAll(/[a-z0-9ñ]+/g)].map(m=>({w:m[0],i:m.index}));const res=[];
+  frases.forEach(({c,f})=>{let best=null;
+   for(const fr of f){const m=new RegExp('(^|[^a-z0-9ñ])'+reEsc(fr)+'(?=[^a-z0-9ñ]|$)').exec(t);if(m){const i=m.index+m[1].length;if(!best||i<best.i)best={i,dud:false};}}
+   if(!best)for(const p of pal){for(const w of tokNombre(c)){const own=dueno[w].size===1;if(!own)continue;
+     if(p.w===w){best={i:p.i,dud:COMUNES.has(w)};break}
+     if(w.length>=6&&p.w.length>=5&&lev1(p.w,w)){best={i:p.i,dud:true};break}}if(best)break}
+   if(best)res.push({c,i:best.i,dud:best.dud})});
+  return res.sort((a,b)=>a.i-b.i)};
+ f.compartido=text=>[...norm(text).matchAll(/[a-z0-9ñ]+/g)].some(m=>dueno[m[0]]&&dueno[m[0]].size>1);return f}
+/* ---------- Clasificación ---------- */
+const NEG=['no mas','jamas','huy no','uy no','uyy','huyy','nooo','ni por','dios nos libre','robar','robo','roba','ladr','rata','plata','platica','teta','llenadero','bolsillo','rosca','corrup','desangr','arcas','ciclo','ya tuvo','ya tubo','su tiempo','su momento','cuarto de hora','gente nueva','gente joven','juventud','jovenes','nuevas generaciones','ideas nuevas','nuevos','cara nueva','repetir','otra vez','otra ves','de lo mismo','los mismos','las mismas','grosera','prepotente','petulante','humill','soberbia','maltrat','pereza','quemad','no sirv','estorbar','terrible','muy mal','cucha','vieja','bruja','pensione','inconclus','no hizo nada','no hicieron nada','para que','paque','suficiente','descansar','cansona','nunca','fuera','jum','no jod','despilfarro','sinismo','cinismo','robe','oportunidad a','la oportunidad','otra persona','nada que ver','tu hora','se olvida','no alluda','no ayuda','pasado','nuevas propuestas','nueva','pesad','masoquist','no funciono','no fueron capaces','muy feo','tan feo','negocio','se cagan','rechazo','peores','decepcion','cuestionad','a medias','peinar','yuca','ningun','sacudir','pecaito','sigue creyendo','ella jura','mk ya','vicio','tomaderos','que ganas de seguir','lo malo'];
+const POS=['mejor opcion','la mejor','excelente','exelente','buena alcaldesa','buena idea','te apoyo','total apoyo','apoyo total','votaria','bendig','exitos','agradec','intachable','bravo','vamos con toda','voy con todo','admirable','bella persona','gran opcion','claro que si','recuperar','buena gestion','hizo bien','gran mujer','la necesitamos','eres la mejor','buen corazon','viejo conocido','es verdad','tienes la razon','orden','progreso','ayudan','remodelacion','pray','blessed','good luck','se vea mejor','te apoyamos','cuenta con','uy sii','buenas ideas','buena propuesta','buen candidato','buena opcion','tiene con que','sabe gobernar','ya demostro','buen alcalde','buena alcaldesa','proximo alcalde','proxima alcaldesa','el que sabe','la que sabe','es el que','es la que','no esta mal','nada mal','voto por','votare por','vamos con','mi candidato','mi candidata'];
+const EPOS=/[👏❤♥🙏💪✨👌🫶😍🥰]/u, ENEG=/[😡🙄😒🤮👎💩🥚]/u, ERISA=/[😂🤣😆😄]/u;
+function clasificar(text,c,otros){
+ const t=norm(text);let p=0,n=0;
+ const cut=t.lastIndexOf(' pero ');const parts=cut>0?[[t.slice(0,cut),1],[t.slice(cut),2]]:[[t,1]];
+ parts.forEach(([s,w])=>{POS.forEach(k=>{if(s.includes(k))p+=w});NEG.forEach(k=>{if(s.includes(k))n+=w})});
+ if(/ja(ja)+|jaj/.test(t))n+=0.5;
+ if(EPOS.test(text))p+=0.5;if(ENEG.test(text))n+=0.5;
+ const enc=c.buscar?c.buscar(text):[];const alt=c.buscar?enc.some(x=>x.c.id!==c.id):otros.some(o=>o.terms.some(a=>t.includes(a)));
+ const self=c.buscar?enc.some(x=>x.c.id===c.id):c.terms.some(a=>t.includes(a));
+ if(alt&&!self){n+=1.5;if(p>=n)p=n-1}
+ const soloEmoji=!/[a-zñ]/i.test(t);
+ const img=/^(puede ser una imagen|el gif|puede ser un dibujo)/.test(t);
+ let tono='U',rev=false;
+ if(p>n)tono='P';else if(n>p)tono='N';else rev=true;
+ if(soloEmoji&&ERISA.test(text)&&!EPOS.test(text)){tono='U';rev=true}
+ if(img){rev=true;if(!/pray|bless|good luck|high five/.test(t))tono='U'}
+ if(p>0&&n>0)rev=true;
+ if(t.length<6&&!soloEmoji)rev=true;
+ return {tono,rev,alt}
+}
+function tema(text,tono,c){
+ const t=norm(text);
+ if(tono==='N'){
+  if(/(rob|ladr|rata|plata|platica|teta|llenadero|bolsillo|rosca|corrup|desangr|arcas|leche)/.test(t))return 'C';
+  if(/(ciclo|joven|juventud|nuev|repetir|otra vez|otra ves|ya tuvo|ya tubo|cuarto de hora|mismo|pasado|su tiempo|su momento|generacion|cucha|pensione|vejez|cuchos|vejetes)/.test(t))return 'R';
+  if(/(grosera|prepotente|petulante|humill|soberbia|maltrat|saluda|modales|ultraj|personaje)/.test(t))return 'T';
+  if(/(obra|parque|vendedor|ambulante|puesto|transito|inconclus|calle|paviment|acueducto|cancha|administr|no hizo|gestion)/.test(t))return 'G';
+  return 'S'
+ }
+ if(tono==='P'){
+  if(/(obra|parque|gestion|inversion|administr|recuperar|cambio|orden|progres|plazoleta|bulevar)/.test(t))return 'O';
+  if(/(agradec|bendig|persona|bella|corazon|admirable|intachable|dama|crecer)/.test(t))return 'A';
+  return 'D'
+ }
+ return 'X'
+}
+function terms(c){return [norm(c.nombre),...norm(c.nombre).split(' ').filter(w=>w.length>4),...(c.alias||[]).map(norm)].filter(Boolean)}
+
+/* ---------- Métricas ---------- */
+function metricas(meds){
+ let n=0,P=0,N=0,U=0,wn=0,wsum=0,rep=0,ages=[],th={},tp={},cuentas={},textos={};
+ meds.forEach(m=>{const w=PESO[fuente(m.fuente).tipo]??1;
+  m.coms.forEach(c=>{if(c.x)return;
+   if(c.r){rep++;return}
+   n++;if(c.tono==='P')P++;else if(c.tono==='N')N++;else U++;
+   wsum+=w;wn+=w*((c.tono==='P')-(c.tono==='N'));
+   if(c.tono==='N')th[c.th]=(th[c.th]||0)+1;if(c.tono==='P')tp[c.th]=(tp[c.th]||0)+1;
+   cuentas[m.id+c.a]=(cuentas[m.id+c.a]||0)+1;
+   const k=norm(c.t).replace(/[^a-z0-9ñ ]/g,'').replace(/\s+/g,' ').trim();if(k.length>15)textos[k]=(textos[k]||0)+1;
+   if(c.min!=null)ages.push(c.min)})});
+ const multi=Object.values(cuentas).filter(v=>v>=3).reduce((a,b)=>a+b,0);
+ const dup=Object.values(textos).filter(v=>v>1).reduce((a,b)=>a+b,0);
+ const pEmo=meds.reduce((a,m)=>a+m.coms.filter(c=>!c.x&&!c.r&&c.tono==='P'&&!/[a-zñ]/i.test(norm(c.t))).length,0);
+ ages.sort((a,b)=>a-b);
+ return {n,P,N,U,rep,neto:n?Math.round((P-N)*100/n):0,netoW:wsum?Math.round(wn*100/wsum):0,th,tp,pEmo,
+  bodega:n?(multi/n>0.15||dup/n>0.1):false,multi,dup,
+  cuentasUnicas:Object.keys(cuentas).length,
+  mediana:ages.length?ages[Math.floor(ages.length/2)]:null,primeraHora:ages.length?Math.round(ages.filter(a=>a<=60).length*100/ages.length):null,conTiempo:ages.length}
+}
+function menciones(cId){const c=cand(cId);const bus=hacerBuscador(DB.cands.filter(o=>norm(o.mun||'')===norm(c.mun||'')));let k=0;DB.meds.filter(m=>m.cand!==cId&&!m.grupo&&!m.deriv&&norm(cand(m.cand).mun||'')===norm(c.mun||'')).forEach(m=>m.coms.forEach(x=>{if(!x.x&&bus(x.t).some(z=>z.c.id===cId))k++}));return k}
+
+function reacciones(meds){return {like:0,love:0,care:0,haha:0,wow:0,sad:0,angry:0,otras:0,total:0,meds:0}} /* el desglose de reacciones se retiró */
+const RX=[['like','👍','Me gusta'],['love','❤️','Me encanta'],['care','🥰','Me importa'],['haha','😆','Me divierte'],['wow','😮','Me asombra'],['sad','😢','Me entristece'],['angry','😡','Me enoja'],['otras','·','Otras']];
+function bloqueReac(meds){const r=reacciones(meds);if(!r.total)return '<p class="muted">Sin reacciones registradas. Escríbelas en Nueva medición.</p>';
+ const pos=r.like+r.love+r.care,neg=r.angry+r.haha+r.sad;
+ return '<div class="ths">'+RX.filter(([k])=>r[k]).map(([k,e,n])=>`<div class="th"><span>${e} ${n}</span><span style="display:flex;gap:8px"><span class="mini"><i style="width:${r[k]*100/r.total}%;background:${['angry','haha','sad'].includes(k)?'var(--neg)':['like','love','care'].includes(k)?'var(--pos)':'var(--neu)'}"></i></span><em>${r[k].toLocaleString('es-CO')} · ${Math.round(r[k]*100/r.total)}%</em></span></div>`).join('')+`</div><p class="muted" style="margin-top:6px">Total: <b>${r.total.toLocaleString('es-CO')}</b> en ${r.meds} medición(es) · Afecto (👍❤️🥰): <b>${Math.round(pos*100/r.total)}%</b> · Rechazo o burla (😡😆😢): <b>${Math.round(neg*100/r.total)}%</b></p>`}
+
+/* ---------- Estimado de sexo por el primer nombre (no se guarda el nombre) ---------- */
+const NOM_H=new Set(('juan carlos jose luis jorge andres diego david daniel alejandro fernando javier miguel pedro pablo ricardo sergio hernan oscar mario edwin jhon john jhonatan jonathan julian julio cesar camilo cristian christian felipe santiago sebastian mauricio alberto gustavo guillermo gonzalo hector hugo ivan jaime jairo jesus fabio favio francisco gabriel gerardo german harold henry jefferson jeison jeyson jimmy jhonny johnny kevin leonardo leo manuel marco marcos martin mateo nelson nicolas omar orlando rafael ramiro raul rodrigo ruben samuel simon uver victor wilson william wilber wilmer yesid yeison dairo alexander alex alexis alekxis alfredo alvaro antonio armando arley arturo bernardo dario edgar eduardo elkin emiliano enrique ernesto esteban ever fredy freddy hermes humberto ignacio jader joaquin lider lucas marino mariano napoleon nestor norberto octavio rene robinson rolando saul steven thiago tomas yefri yefry jeffrey jeffry ruibe edumar ery eugenio fernando karlos guillermo hoffman andre edison edisson elmer emerson fabian franklin geovanny giovanny hamilton heriberto jhojan joan johan john jair jaider jhoan libardo luciano maicol michael miller milton nolberto ramon reinaldo reynaldo rigoberto ronald roberto rubiel silvio teofilo uriel vicente wilfredo wilfer wilmar yamid yhon yovany diomedes evelio gilberto hernando jesus amauri antony anthony brayan brian bryan duvan dubian estiven stiven estefan jhordan jordan juanes juanpa pipe toño chucho kike dayron jon yessid yesid alexxander dvd brandon dilan dylan jhonier yeferson jeferson darwin danilo cristobal adrian alonso aurelio benjamin bladimir vladimir efrain eider elias emilio ezequiel farid gregorio isaac israel jacobo jeronimo leandro lisandro luciano mauro moises nicolas oswaldo pascual ramon salvador segundo tiberio ulises wilmer yair yeferson').split(' '));
+const NOM_M=new Set(('maria ana luz gloria sandra snadra claudia martha marta patricia carolina diana adriana liliana lina luisa paola andrea alejandra viviana yenny jenny leidy leydi lady nelly nancy olga rosa rosalba dalia sofia susana karime karolina lilia myriam miriam mariella mariela marisol idalia isabel isa nhora nora maricel mayra mary magdalena elena gladys erika erikita eliana yeiny yeimy yesica jessica lorena mariana manuela valentina natalia catalina daniela camila juliana laura monica angela beatriz cielo nilfa luza videlia sara alba aleja anamaria marcela guadalupe beatriz amparo aura blanca carmen cecilia clara consuelo dora edilma esperanza fanny francy gabriela genny graciela ines irma johana yohana jhoana julieta karen katherine kelly lucia luz marlene mercedes milena nidia noralba omaira pilar rocio roci ruby sonia stella teresa yolanda zulma alix ximena tatiana vanessa vanesa yuliana yurany yuri yady deisy daisy dayana diana luciana maritza matilde nubia piedad sandra shirley stefany stephany estefania tania yaneth janeth yamile zoraida ofelia doris eva alicia rubiela emilse ligia lida hilda belen jazmin yazmin jasmin diane dayana yesenia yisel yiseth leidys lizeth lizet lisseth luzmila marleny nathaly nataly paula sharon sindy cindy wendy xiomara yudy judith ruth raquel rebeca esther miriam noemi carla karla brenda tatiana angie ingrid evelyn emily').split(' '));
+const NO_PERSONA=/(noticias|pereira|zarzal|oficial|radio|tv|television|dialogos|informa|denuncias|comunidad|grupo|pagina|tienda|store|shop|boss|club|fan|news|medios|periodico|emisora|canal|alcaldia|concejo|partido)/;
+function sexoDe(nombre){const n=norm(nombre||'');if(!n)return '?';
+ const w=n.replace(/[^a-z ñ]/g,' ').split(/\s+/).filter(x=>x.length>=2);if(!w.length)return '?';
+ for(const t of w.slice(0,2)){if(NOM_H.has(t))return 'H';if(NOM_M.has(t))return 'M'}
+ if(NO_PERSONA.test(n))return '?';
+ const t=w[0];if(t.length>=4&&/^[a-zñ]+$/.test(t)){if(/a$/.test(t))return 'M';if(/o$/.test(t))return 'H'}return '?'}
+function sexoStats(meds){const s={H:{n:0,P:0,N:0,U:0},M:{n:0,P:0,N:0,U:0},'?':{n:0}};let tot=0,con=0;
+ meds.forEach(m=>m.coms.forEach(c=>{if(c.x||c.r)return;tot++;if(!('g' in c))return;con++;const g=c.g||'?';s[g].n++;if(g!=='?')s[g][c.tono]++}));
+ const net=x=>x.n?Math.round((x.P-x.N)*100/x.n):null;return {H:{...s.H,neto:net(s.H)},M:{...s.M,neto:net(s.M)},sin:s['?'].n,tot,con}}
+function bloqueSexo(meds,compacto){const s=sexoStats(meds);if(!s.con)return '';
+ const ident=s.H.n+s.M.n;const fila=(lab,x,col)=>`<tr${T(`<b>${lab}: ${x.n} comentarios</b>\n${x.P} positivos, ${x.U} neutros, ${x.N} negativos.\nNeto ${x.neto==null?'—':(x.neto>0?'+':'')+x.neto} = % positivos − % negativos dentro de este grupo.\nSexo estimado por el primer nombre de quien comentó.`)}><td><b style="color:${col}">${lab}</b></td><td>${x.n}</td><td>${ident?Math.round(x.n*100/ident):0}%</td><td style="min-width:90px">${x.n?barra(x.P,x.N,x.U):'—'}</td><td style="font-weight:700;color:${x.neto==null?'var(--mute)':x.neto>=0?'var(--pos)':'var(--neg)'}">${x.neto==null?'—':(x.neto>0?'+':'')+x.neto}</td></tr>`;
+ const dif=(s.H.n>=10&&s.M.n>=10)?s.M.neto-s.H.neto:null;
+ return `<h3>Mujeres y hombres (estimado)</h3><div class="tbl"><table><thead><tr><th></th><th>Comentarios</th><th>Parte</th><th>Tono</th><th>Neto</th></tr></thead><tbody>${fila('Mujeres',s.M,'#be185d')}${fila('Hombres',s.H,'#1f5fbf')}</tbody></table></div>
+ <p class="muted">${dif!=null&&Math.abs(dif)>=15?`<b>Lo ven ${dif>0?'mejor las mujeres':'mejor los hombres'}</b> (${Math.abs(dif)} puntos de diferencia). `:''}Sin identificar: ${s.sin} de ${s.con} (${s.con?Math.round(s.sin*100/s.con):0}%).${s.con<s.tot?` ${s.tot-s.con} comentarios guardados antes de esta función no tienen el dato.`:''} Estimado por el primer nombre de quien comenta: no es exacto.</p>`}
+
+/* ---------- Explicaciones al pasar el mouse ---------- */
+const T=s=>` data-tip="${esc(s)}"`;
+const TIP=T;
+const pc=(a,b)=>b?Math.round(a*100/b):0;
+function fuentesTxt(ms){const f=new Map();ms.forEach(m=>{const x=fuente(m.fuente);const k=x.nombre+' ('+(TIPO[x.tipo]||'').toLowerCase()+')';f.set(k,(f.get(k)||0)+1)});return [...f.entries()].map(([k,v])=>k+(v>1?' ×'+v:'')).join(', ')||'—'}
+function tipCand(c,ms){const a=(c.alias||[]).length?c.alias.join(', '):'ninguno';const g=ms.filter(m=>m.grupo).length,dv=ms.filter(m=>m.deriv).length,pr=ms.length-g-dv;
+ return `<b>${c.nombre}</b>\nAspira a: ${c.cargo} de ${c.mun||'—'}.\nLa app lo reconoce por su nombre, apellidos, combinaciones y estos apodos: ${a}.\nDatos de ${ms.length} medición(es): ${pr} propia(s), ${g} en publicaciones de varios candidatos, ${dv} por menciones en publicaciones de otros.\nFuentes: ${fuentesTxt(ms)}.`}
+function tipNeto(m){return `<b>Índice neto: ${m.netoW>0?'+':''}${m.netoW}</b>\nQué es: % de comentarios positivos menos % de negativos. Va de −100 (todos en contra) a +100 (todos a favor). 0 = parejo.\nDe dónde sale: ${m.P} positivos y ${m.N} negativos de ${m.n} comentarios principales (sin contar respuestas) = ${m.neto>0?'+':''}${m.neto}.${m.neto!==m.netoW?`\nAjuste por fuente: los comentarios en la página del propio candidato pesan la mitad, porque ahí comentan sobre todo sus seguidores. Con ese ajuste queda en ${m.netoW>0?'+':''}${m.netoW}.`:''}`}
+function tipTono(m){return `<b>Tono de los comentarios</b>\nVerde: ${m.P} positivos (${pc(m.P,m.n)}%)\nGris: ${m.U} neutros o dudosos (${pc(m.U,m.n)}%)\nRojo: ${m.N} negativos (${pc(m.N,m.n)}%)\nDe dónde sale: la app lee cada comentario y lo clasifica; tú lo corriges en la revisión.`}
+function tipTema(k,v,tot,neg){const d=(neg?TEMAS_N:TEMAS_P)[k];const ex={R:'piden gente nueva, dicen que ya cumplió su ciclo, que no repita',C:'lo asocian con robo, plata, "la teta", corrupción',G:'critican obras, parques, vendedores, administración',T:'se quejan de su trato, prepotencia o groserías',V:'apoyan a otro candidato en vez de a él',S:'rechazan sin dar razón ("huy no", "jamás")',O:'destacan obras y gestión',A:'agradecen o elogian a la persona',D:'apoyo directo ("vamos con toda", "la mejor opción")'}[k]||'';
+ return `<b>${d}: ${v} comentario(s)</b>\n${pc(v,tot)}% de los ${tot} comentarios ${neg?'negativos':'positivos'}.\nIncluye comentarios que ${ex}.\nEl tema lo asigna la app por palabras clave y lo puedes corregir en la revisión.`}
+document.addEventListener('mouseover',e=>{const t=e.target.closest&&e.target.closest('[data-tip]');const tip=$('tip');if(!t){tip.style.display='none';return}tip.innerHTML=t.getAttribute('data-tip').replace(/&lt;(\/?b)&gt;/g,'<$1>');tip.style.display='block';mover(e)});
+document.addEventListener('mousemove',e=>{if($('tip').style.display==='block')mover(e)});
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-tip]');if(!t||!matchMedia('(hover:none)').matches)return;const tip=$('tip');tip.innerHTML=t.getAttribute('data-tip').replace(/&lt;(\/?b)&gt;/g,'<$1>');tip.style.display='block';const r=t.getBoundingClientRect();mover({clientX:r.left+r.width/2,clientY:r.bottom});clearTimeout(tip._h);tip._h=setTimeout(()=>tip.style.display='none',6000)});
+document.addEventListener('scroll',()=>{$('tip').style.display='none'},true);
+function mover(e){const tip=$('tip'),W=innerWidth,H=innerHeight,w=tip.offsetWidth,hh=tip.offsetHeight;let x=e.clientX+14,y=e.clientY+16;if(x+w>W-8)x=Math.max(8,e.clientX-w-14);if(y+hh>H-8)y=Math.max(8,e.clientY-hh-14);tip.style.left=x+'px';tip.style.top=y+'px'}
+
+/* ---------- Ver comentarios de posible bodega ---------- */
+function abrirModal(html){$('modal-box').innerHTML=html;$('modal').style.display='flex';$('modal').scrollTop=0}
+function cerrarModal(){$('modal').style.display='none'}
+$('modal').addEventListener('click',e=>{if(e.target.id==='modal'||e.target.classList.contains('cerrar'))cerrarModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrarModal()});
+function sospechosos(cId){const ms=DB.meds.filter(m=>m.cand===cId);const porCuenta=new Map(),porTexto=new Map();
+ ms.forEach(m=>m.coms.forEach((c,i)=>{if(c.x||c.r)return;const ref={m,i,c};
+  const kc=m.id+'|'+c.a;(porCuenta.get(kc)||porCuenta.set(kc,[]).get(kc)).push(ref);
+  const kt=norm(c.t).replace(/[^a-z0-9ñ ]/g,'').replace(/\s+/g,' ').trim();if(kt.length>15)(porTexto.get(kt)||porTexto.set(kt,[]).get(kt)).push(ref)}));
+ const cuentas=[...porCuenta.values()].filter(v=>v.length>=3).sort((a,b)=>b.length-a.length);
+ const textos=[...porTexto.values()].filter(v=>v.length>1).sort((a,b)=>b.length-a.length);
+ return {cuentas,textos,ms}}
+let BOD=null;
+function verBodega(cId){const c=cand(cId);const s=sospechosos(cId);const m=metricas(s.ms);BOD={cId,refs:[]};
+ const fila=ref=>{const k=BOD.refs.push(ref)-1;const f=fuente(ref.m.fuente);return `<tr><td style="width:28px"><input type="checkbox" data-bx="${k}" style="width:auto"></td><td>${esc(ref.c.t)}</td><td><span class="pill ${ref.c.tono}">${TONO[ref.c.tono]}</span></td><td class="muted" style="white-space:nowrap">${esc(f.nombre)}<br>${esc((ref.m.fcap||'').slice(0,10))}</td></tr>`};
+ let html=`<button class="cerrar">Cerrar ✕</button><h2>Posible bodega · ${esc(c.nombre)}</h2>
+ <p class="muted" style="margin:4px 0 10px">La alerta se enciende si más del 15% de los comentarios vienen de cuentas que comentaron 3 veces o más en la misma publicación, o si más del 10% son textos repetidos. Aquí: <b>${m.multi}</b> de ${m.n} comentarios vienen de cuentas repetidas (${pc(m.multi,m.n)}%) y <b>${m.dup}</b> son textos repetidos (${pc(m.dup,m.n)}%). Los nombres no se guardan: cada cuenta se muestra con un número.</p>
+ <p class="muted" style="margin:0 0 6px"><b>Cómo leerlo:</b> si una misma cuenta repite el mismo mensaje, o varias cuentas publican textos idénticos, es probable que sea organizado. Si son discusiones normales (alguien que responde varias veces), no lo es.</p>`;
+ if(s.cuentas.length){html+=`<h3 style="margin:14px 0 4px">Cuentas que comentaron 3 veces o más (${s.cuentas.length})</h3>`;
+  s.cuentas.forEach((g,ix)=>{html+=`<div class="grp"><div><span>Cuenta ${ix+1} · ${g.length} comentarios en la misma publicación</span><label style="margin:0;font-weight:400;font-size:12px;color:var(--mute)"><input type="checkbox" data-bg="c${ix}" style="width:auto"> marcar todos</label></div><div class="tbl"><table><tbody data-g="c${ix}">${g.map(fila).join('')}</tbody></table></div></div>`})}
+ if(s.textos.length){html+=`<h3 style="margin:14px 0 4px">Textos repetidos (${s.textos.length})</h3>`;
+  s.textos.forEach((g,ix)=>{const n=new Set(g.map(r=>r.m.id+'|'+r.c.a)).size;html+=`<div class="grp"><div><span>Repetido ${g.length} veces por ${n} cuenta(s) distinta(s)</span><label style="margin:0;font-weight:400;font-size:12px;color:var(--mute)"><input type="checkbox" data-bg="t${ix}" style="width:auto"> marcar todos</label></div><div class="tbl"><table><tbody data-g="t${ix}">${g.map(fila).join('')}</tbody></table></div></div>`})}
+ if(!s.cuentas.length&&!s.textos.length)html+=`<p>No hay comentarios sospechosos en este momento.</p>`;
+ else html+=`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;border-top:1px solid var(--line);padding-top:12px"><button class="btn" id="b-bx">Quitar los marcados del análisis</button><span class="muted">Los comentarios quitados no cuentan en el índice. Puedes devolverlos desde "Revisar" en Mediciones (casilla "Quitar").</span></div>`;
+ abrirModal(html);
+ document.querySelectorAll('[data-bg]').forEach(x=>x.onchange=()=>document.querySelectorAll(`[data-g="${x.dataset.bg}"] input`).forEach(i=>i.checked=x.checked));
+ if($('b-bx'))$('b-bx').onclick=()=>{const sel=[...document.querySelectorAll('[data-bx]:checked')].map(x=>BOD.refs[+x.dataset.bx]);if(!sel.length){alert('Marca los comentarios que quieres quitar.');return}
+  const vist=new Set();sel.forEach(r=>{const k=r.m.id+'|'+r.i;if(vist.has(k))return;vist.add(k);r.c.x=true;
+   if(r.m.grupo){/* mismo comentario en otras mediciones de la publicación */DB.meds.filter(o=>o.grupo===r.m.grupo).forEach(o=>o.coms.forEach(q=>{if(q.a===r.c.a&&q.t===r.c.t&&q.r===r.c.r)q.x=true}))}});
+  save();cerrarModal();alert(`Listo: ${vist.size} comentario(s) quitados del análisis.`);renderTablero()}}
+/* ---------- Tablero ---------- */
+function barra(P,N,U){const t=P+N+U||1;return `<div class="bar"><i class="p" style="width:${P*100/t}%"></i><i class="u" style="width:${U*100/t}%"></i><i class="n" style="width:${N*100/t}%"></i></div>`}
+function listaTemas(obj,dic,color,total){const e=Object.entries(obj).sort((a,b)=>b[1]-a[1]);if(!e.length)return '<span class="muted">Sin datos</span>';const neg=dic===TEMAS_N;
+ return '<div class="ths">'+e.map(([k,v])=>`<div class="th"${T(tipTema(k,v,total,neg))}><span>${dic[k]||k}</span><span style="display:flex;gap:8px"><span class="mini"><i style="width:${v*100/total}%;background:${color}"></i></span><em>${v}</em></span></div>`).join('')+'</div>'}
+function fechaCorta(fc){if(!fc)return '';const [d,t]=fc.split('T');const [Y,M,D]=d.split('-');return D+'/'+M+(t?' '+t.slice(0,5):'')}
+function origenTxt(m){if(m.grupo){const g=DB.grupos.find(x=>x.id===m.grupo);return 'publicación con varios candidatos'+(g&&g.desc?': "'+g.desc+'"':'')}if(m.deriv){const o=DB.meds.find(x=>x.id===m.deriv);return 'comentarios que lo nombran en una publicación sobre '+(o?cand(o.cand).nombre:'otro candidato')}return 'publicación sobre este candidato'+(m.desc?': "'+m.desc+'"':'')}
+function tendencia(cId){const ms=DB.meds.filter(m=>m.cand===cId).sort((a,b)=>(a.fcap||'').localeCompare(b.fcap||''));
+ if(ms.length<2)return `<p class="muted">Se necesitan al menos 2 mediciones para ver la tendencia (${ms.length} hasta ahora).</p>`;
+ const pts=ms.map((m,i)=>{const k=metricas([m]);return {m,k,v:k.netoW,f:(m.fcap||'').slice(0,10),i}});
+ const mismoDia=new Set(pts.map(p=>p.f)).size<pts.length;
+ const W=300,H=118,pad=26;const x=i=>pad+i*(W-2*pad)/(pts.length-1),y=v=>(H-14)/2-v*((H-14)/2-12)/100;
+ const tipPunto=(p,i)=>{const f=fuente(p.m.fuente),k=p.k,ant=pts[i-1];const peso=PESO[f.tipo]??1;
+  let t=`<b>Medición ${i+1} de ${pts.length} · índice ${p.v>0?'+':''}${p.v}</b>\nCopiada el ${fechaCorta(p.m.fcap)}${p.m.fpub?' · publicada el '+fechaCorta(p.m.fpub):''}\nFuente: ${f.nombre} (${(TIPO[f.tipo]||'').toLowerCase()}${peso!==1?', pesa '+peso:''})\nDe dónde sale: ${origenTxt(p.m)}\nComentarios: ${k.n} → ${k.P} positivos, ${k.U} neutros, ${k.N} negativos\nCálculo: ${pc(k.P,k.n)}% − ${pc(k.N,k.n)}% = ${k.neto>0?'+':''}${k.neto}`;
+  if(ant)t+=`\nFrente a la medición ${i}: ${p.v===ant.v?'igual':(p.v>ant.v?'subió ':'bajó ')+Math.abs(p.v-ant.v)+' puntos'}`;
+  if(k.n<30)t+=`\nOjo: pocos comentarios, este punto es poco confiable.`;return t};
+ const tipTramo=(a,b,i)=>`<b>De la medición ${i+1} a la ${i+2}</b>\nÍndice: ${a.v>0?'+':''}${a.v} → ${b.v>0?'+':''}${b.v}: ${b.v===a.v?'se mantuvo igual':(b.v>a.v?'subió ':'bajó ')+Math.abs(b.v-a.v)+' puntos'}.\n${a.f===b.f?'Ojo: las dos son del mismo día, así que el cambio se debe a que son publicaciones o fuentes distintas, no a que la opinión haya cambiado con el tiempo.':'Pasaron '+Math.max(1,Math.round((new Date(b.m.fcap)-new Date(a.m.fcap))/864e5))+' día(s) entre una y otra.'}${fuente(a.m.fuente).id!==fuente(b.m.fuente).id?'\nSon de fuentes distintas: '+fuente(a.m.fuente).nombre+' y '+fuente(b.m.fuente).nombre+'.':''}`;
+ let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Tendencia del índice neto"><line x1="${pad}" x2="${W-pad}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line)"${TIP('<b>Línea del cero</b>\nArriba: más comentarios a favor que en contra. Abajo: más en contra.')}/>`;
+ pts.slice(1).forEach((b,i)=>{const a=pts[i];s+=`<line x1="${x(i)}" y1="${y(a.v)}" x2="${x(i+1)}" y2="${y(b.v)}" stroke="var(--acc)" stroke-width="2"/><line x1="${x(i)}" y1="${y(a.v)}" x2="${x(i+1)}" y2="${y(b.v)}" stroke="transparent" stroke-width="12"${TIP(tipTramo(a,b,i))}/>`});
+ pts.forEach((p,i)=>{const lab=mismoDia?(fechaCorta(p.m.fcap).slice(0,5)+' #'+(i+1)):fechaCorta(p.m.fcap).slice(0,5);
+  s+=`<circle cx="${x(i)}" cy="${y(p.v)}" r="9" fill="transparent"${TIP(tipPunto(p,i))}/><circle cx="${x(i)}" cy="${y(p.v)}" r="3.5" fill="var(--acc)" pointer-events="none"/><text x="${x(i)}" y="${y(p.v)-8}" font-size="10" text-anchor="middle" fill="var(--ink)" pointer-events="none">${p.v}</text><text x="${x(i)}" y="${H-2}" font-size="8.5" text-anchor="middle" fill="var(--mute)"${TIP(tipPunto(p,i))}>${lab}</text>`});
+ s+='</svg>';
+ if(mismoDia)s+=`<p class="muted" style="margin:4px 0 0">Ojo: hay mediciones del mismo día. Las diferencias entre ellas vienen de publicaciones o fuentes distintas, no de un cambio en el tiempo. La tendencia real se ve al medir en fechas diferentes.</p>`;
+ return s}
+function renderTablero(){
+ const el=$('t-tablero');
+ if(!DB.cands.length){el.innerHTML='<div class="card">Agrega candidatos en <b>Candidatos y fuentes</b> para empezar.</div>';return}
+ const filas=DB.cands.filter(enMun).map(c=>{const ms=DB.meds.filter(m=>m.cand===c.id);return {c,ms,m:metricas(ms),men:menciones(c.id)}});
+ const hoy=new Date().toLocaleString('es-CO',{dateStyle:'long',timeStyle:'short'});
+ const muns=munActual()==='*'?[...new Set(DB.cands.map(c=>c.mun).filter(Boolean))].join(', '):munActual();
+ const H={
+  cand:'<b>Candidato</b>\nNombre, cargo al que aspira y municipio. Pasa el mouse sobre cada nombre para ver con qué apodos lo busca la app y de qué fuentes salen sus datos.',
+  med:'<b>Mediciones</b>\nCuántas veces se ha medido a este candidato: cada publicación de Facebook que cargaste y en la que aparece cuenta como una medición.',
+  com:'<b>Comentarios</b>\nComentarios principales sobre este candidato (sin contar respuestas). Las respuestas se muestran aparte como "+ resp." y no entran en el índice.',
+  neto:'<b>Índice neto</b>\n% positivos − % negativos. Va de −100 a +100. Es la cifra principal para comparar candidatos. Pasa el mouse sobre cada número para ver la cuenta.',
+  tono:'<b>Tono</b>\nBarra con la proporción de comentarios positivos (verde), neutros (gris) y negativos (rojo).',
+  crit:'<b>Mayor crítica</b>\nEl tema que más se repite en los comentarios negativos.',
+  elog:'<b>Mayor elogio</b>\nEl tema que más se repite en los comentarios positivos.',
+  reac:'<b>Reacciones</b>\nSuma de reacciones (👍❤️😆😡…) que escribiste al cargar las publicaciones de un solo candidato. Debajo: qué parte son de enojo 😡 y de burla 😆.',
+  men:'<b>Mencionado como alternativa</b>\nCuántas veces aparece su nombre en comentarios de publicaciones sobre OTROS candidatos del mismo municipio. Mide si la gente lo propone como opción.',
+  ale:'<b>Alertas</b>\nMuestra insuficiente: menos de 100 comentarios, el resultado puede cambiar mucho.\nPosible bodega: muchas cuentas repetidas o textos copiados, señal de comentarios organizados.'};
+ let h=`<div id="print-head"><h1>Radar Electoral · Informe de Opinión Digital</h1><p>${esc(muns)} · Generado el ${hoy} · ${DB.meds.length} medición(es) · ${DB.fuentes.length} fuente(s): ${esc(DB.fuentes.map(f=>f.nombre).join(', '))}</p><p><b>Análisis de conversación digital – uso interno, no es encuesta.</b> Quienes comentan en Facebook no representan a todos los votantes.</p></div>
+ <div class="noprint" style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap"><span>${filtroMun('renderTablero')}</span><button class="btn" onclick="imprimir()">Descargar informe PDF</button></div>
+ <p class="hint">ⓘ Pasa el mouse (o toca, en el celular) sobre cualquier nombre, cifra o título para ver qué significa y de dónde sale.</p>
+ <div class="card keep"><h2>Comparativo</h2><div class="tbl"><table><thead><tr><th${T(H.cand)}>Candidato</th><th${T(H.med)}>Mediciones</th><th${T(H.com)}>Comentarios</th><th${T(H.neto)}>Índice neto*</th><th${T(H.tono)}>Tono</th><th${T(H.crit)}>Mayor crítica</th><th${T(H.elog)}>Mayor elogio</th><th${T(H.men)}>Mencionado como alternativa</th><th${T(H.ale)}>Alertas</th></tr></thead><tbody>`;
+ filas.sort((a,b)=>(!!b.m.n-!!a.m.n)||(b.m.netoW-a.m.netoW)).forEach(({c,ms,m,men})=>{
+  const tc=Object.entries(m.th).sort((a,b)=>b[1]-a[1])[0],tp=Object.entries(m.tp).sort((a,b)=>b[1]-a[1])[0];
+  const al=[];if(m.n&&m.n<100)al.push(['Muestra insuficiente',`Tiene ${m.n} comentarios principales; se recomiendan al menos 100 para que el resultado sea estable. Suma más publicaciones o fuentes.`]);if(m.bodega)al.push(['Posible bodega',`${m.multi} comentarios vienen de cuentas que comentaron 3 veces o más en una misma publicación, y ${m.dup} textos están repetidos. Puede ser actividad organizada: revisa antes de confiar.`]);
+  const r=reacciones(ms);
+  h+=`<tr><td${T(tipCand(c,ms))}><b class="tipu">${esc(c.nombre)}</b><div class="muted">${esc(c.cargo)} · ${esc(c.mun)}</div></td>
+  <td${T(`<b>${ms.length} medición(es)</b>\n${fuentesTxt(ms)}`)}>${ms.length}</td>
+  <td${T(`<b>${m.n} comentarios principales</b>\nDe ${m.cuentasUnicas} cuentas distintas.${m.rep?`\nAdemás ${m.rep} respuestas (van aparte, no entran en el índice).`:''}`)}>${m.n}${m.rep?` <span class="muted">+${m.rep} resp.</span>`:''}</td>
+  <td${m.n?T(tipNeto(m)):''} style="font-weight:800;color:${m.netoW>=0?'var(--pos)':'var(--neg)'}">${m.n?(m.netoW>0?'+':'')+m.netoW:'—'}</td>
+  <td${m.n?T(tipTono(m)):''} style="min-width:120px">${m.n?barra(m.P,m.N,m.U):'—'}</td>
+  <td${tc?T(tipTema(tc[0],tc[1],m.N,true)):''}>${tc?TEMAS_N[tc[0]]:'—'}</td>
+  <td${tp?T(tipTema(tp[0],tp[1],m.P,false)):''}>${tp?TEMAS_P[tp[0]]:'—'}</td>
+  <td${T(`<b>${men} mención(es) como alternativa</b>\nComentarios en publicaciones de otros candidatos de ${c.mun||'este municipio'} que nombran a ${c.nombre}.`)}>${men}</td>
+  <td>${al.length?al.map(a=>a[0]==='Posible bodega'?`<span class="pill U" style="cursor:pointer;text-decoration:underline"${T('<b>'+a[0]+'</b>\n'+a[1]+'\nHaz clic para ver los comentarios.')} onclick="verBodega('${c.id}')">${a[0]} ›</span>`:`<span class="pill U"${T('<b>'+a[0]+'</b>\n'+a[1])}>${a[0]}</span>`).join(' '):'<span class="muted">—</span>'}</td></tr>`});
+ h+=`</tbody></table></div><p class="muted">* Índice neto = % positivos − % negativos en comentarios principales, ponderado por tipo de fuente. Va de −100 a +100.</p></div><div class="grid">`;
+ filas.forEach(({c,ms,m,men})=>{
+  h+=`<div class="card"><h2${T(tipCand(c,ms))}>${esc(c.nombre)}</h2><div class="muted">${esc(c.cargo)} · ${esc(c.mun)} · ${ms.length} medición(es)</div>`;
+  if(!m.n){h+='<p class="muted">Aún no tiene mediciones.</p></div>';return}
+  h+=`<div class="big"${T(tipNeto(m))} style="color:${m.netoW>=0?'var(--pos)':'var(--neg)'}">${m.netoW>0?'+':''}${m.netoW}</div><div class="muted">Índice neto ponderado</div><div${T(tipTono(m))}>${barra(m.P,m.N,m.U)}</div>
+  <div class="kpis"><div class="kpi"${T(`<b>${pc(m.P,m.n)}% positivos</b>\n${m.P} de ${m.n} comentarios principales hablan a favor.`)}><b style="color:var(--pos)">${pc(m.P,m.n)}%</b><span>Positivos</span></div><div class="kpi"${T(`<b>${pc(m.N,m.n)}% negativos</b>\n${m.N} de ${m.n} comentarios principales hablan en contra.`)}><b style="color:var(--neg)">${pc(m.N,m.n)}%</b><span>Negativos</span></div><div class="kpi"${T(`<b>${m.n} comentarios</b>\nComentarios principales sobre este candidato en ${ms.length} medición(es). No incluye ${m.rep} respuestas.`)}><b>${m.n}</b><span>Comentarios</span></div><div class="kpi"${T(`<b>${m.cuentasUnicas} cuentas</b>\nPersonas distintas que comentaron. Se cuentan con un código, sin guardar nombres. Si es mucho menor que los comentarios, hay gente comentando varias veces.`)}><b>${m.cuentasUnicas}</b><span>Cuentas</span></div></div>`;
+  if(m.n<100)h+=`<div class="alert w"${T(`Tiene ${m.n} comentarios principales; se recomiendan al menos 100. Con pocos datos, un par de comentarios mueven mucho el índice.`)}>Muestra insuficiente: menos de 100 comentarios.</div>`;
+  h+=m.bodega?`<div class="alert w"${T('Se activa si más del 15% de los comentarios vienen de cuentas con 3 o más comentarios en la misma publicación, o si más del 10% son textos repetidos.')}>Posible bodega: muchas cuentas repetidas o textos copiados (${m.multi} de cuentas con 3+ comentarios, ${m.dup} textos duplicados). <button class="btn sec noprint" style="padding:3px 10px;font-size:12px;margin-left:4px" onclick="verBodega('${c.id}')">Ver comentarios</button></div>`:`<div class="alert ok"${T('No hay muchas cuentas repetidas ni textos copiados: la conversación parece espontánea.')}>Sin señales de bodega.</div>`;
+  if(m.pEmo&&m.P)h+=`<p class="muted"${T('Un apoyo solo con emojis (👏❤️) es más débil que uno con argumentos. Si muchos positivos son solo emojis, el apoyo es liviano.')}>${m.pEmo} de ${m.P} positivos son solo emojis: el apoyo ${m.pEmo/m.P>0.25?'es más liviano que el rechazo':'viene argumentado'}.</p>`;
+  h+=`<h3${T('<b>De qué lo critican</b>\nTemas de los comentarios negativos. La barra y el número dicen cuántos comentarios negativos tocan cada tema.')}>De qué lo critican</h3>${listaTemas(m.th,TEMAS_N,'var(--neg)',m.N)}<h3${T('<b>De qué lo elogian</b>\nTemas de los comentarios positivos.')}>De qué lo elogian</h3>${listaTemas(m.tp,TEMAS_P,'var(--pos)',m.P)}`;
+  const faltan=[];
+  if(m.conTiempo)h+=`<h3${T('<b>Velocidad de respuesta</b>\nCuánto tardó la gente en comentar desde que salió la publicación. Sale de las horas que trae el texto copiado ("3 h", "45 min").')}>Velocidad de respuesta</h3><p>Mediana: <b>${m.mediana<60?m.mediana+' min':Math.round(m.mediana/60)+' h'}</b> · En la primera hora: <b>${m.primeraHora}%</b> <span class="muted">(${m.conTiempo} con tiempo)</span></p>`;else faltan.push('tiempos de respuesta');
+  if(ms.length>=2)h+=`<h3${T('<b>Tendencia</b>\nÍndice neto de cada medición, ordenado por fecha de captura. Muestra si va mejorando o empeorando.')}>Tendencia</h3>${tendencia(c.id)}`;else faltan.push('tendencia (necesita 2 mediciones)');
+  {const bs=bloqueSexo(ms);if(bs)h+=bs;else faltan.push('mujeres y hombres (usa "Completar hombres y mujeres" en Mediciones)')}
+  if(faltan.length)h+=`<p class="muted" style="margin-top:8px">Aún sin datos de: ${faltan.join(', ')}.</p>`;
+  h+=`<p class="muted"${T(`Comentarios en publicaciones de otros candidatos de ${c.mun||'este municipio'} que nombran a ${c.nombre}. Indica si la gente lo propone como opción.`)}>Mencionado como alternativa en mediciones de otros: <b>${men}</b> veces.</p></div>`});
+ el.innerHTML=h+'</div>'
+}
+
+function imprimir(){show('tablero');const t=document.title;document.title='Radar_Opinion_Digital_'+new Date().toISOString().slice(0,10);setTimeout(()=>{window.print();document.title=t},150)}
+
+/* ---------- Análisis ---------- */
+const PAL=['#1f5fbf','#c2410c','#15803d','#7c3aed','#be185d','#0e7490','#a16207','#475569'];
+const DURO=/(jamas|ni por|nunca|dios nos libre|ni a la esquina|ni charlando|ni riesgos|ni pa |ningun|no sirv|que no estorbe)/;
+function extra(meds){let duro=0,blando=0,neg=0,posTxt=0,pos=0,repP=0,repN=0,porTipo={};
+ meds.forEach(m=>{const tp=fuente(m.fuente).tipo;porTipo[tp]=porTipo[tp]||{P:0,N:0,n:0};
+  m.coms.forEach(c=>{if(c.x)return;const t=norm(c.t);
+   if(c.r){if(c.tono==='P')repP++;if(c.tono==='N')repN++;return}
+   porTipo[tp].n++;if(c.tono==='P')porTipo[tp].P++;if(c.tono==='N')porTipo[tp].N++;
+   if(c.tono==='N'){neg++;if(DURO.test(t)||c.th==='C')duro++;else if(c.th==='R'||c.th==='G')blando++}
+   if(c.tono==='P'){pos++;if(/[a-zñ]{3,}/.test(t)&&!/^(puede ser|el gif)/.test(t))posTxt++}})});
+ return {duro,blando,neg,pos,posTxt,repP,repN,porTipo}}
+function datos(){return DB.cands.filter(enMun).map((c,i)=>{const ms=DB.meds.filter(m=>m.cand===c.id);return {c,col:PAL[i%PAL.length],ms,m:metricas(ms),e:extra(ms),r:reacciones(ms),men:menciones(c.id)}}).filter(d=>d.m.n)}
+function leyenda(D){return '<div class="legend">'+D.map(d=>`<span><i style="background:${d.col}"></i>${esc(d.c.nombre)}</span>`).join('')+'</div>'}
+function nota(t){return `<div class="note">${t}</div>`}
+
+function graficoMapa(D){const W=560,H=360,L=46,R=16,T=34,B=40;
+ const maxV=Math.max(...D.map(d=>d.m.n/Math.max(1,d.ms.length)),10)*1.15;
+ const x=v=>L+v*(W-L-R)/maxV,y=v=>T+(100-v)*(H-T-B)/200,mx=x(maxV/2),my=y(0);
+ let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Mapa de posicionamiento">
+ <rect x="${mx}" y="${T}" width="${W-R-mx}" height="${my-T}" fill="var(--pos)" opacity=".06"/><rect x="${mx}" y="${my}" width="${W-R-mx}" height="${H-B-my}" fill="var(--neg)" opacity=".06"/>
+ <line x1="${L}" x2="${W-R}" y1="${my}" y2="${my}" stroke="var(--mute)" stroke-dasharray="4 3"/><line x1="${mx}" x2="${mx}" y1="${T}" y2="${H-B}" stroke="var(--line)" stroke-dasharray="4 3"/>
+ <text x="${W-R-6}" y="${T+14}" text-anchor="end" font-size="11" fill="var(--pos)" font-weight="700">Conocido y bien visto</text>
+ <text x="${W-R-6}" y="${H-B-8}" text-anchor="end" font-size="11" fill="var(--neg)" font-weight="700">Conocido y rechazado</text>
+ <text x="${L+6}" y="${T+14}" font-size="11" fill="var(--mute)" font-weight="700">Poco conocido, buena imagen</text>
+ <text x="${L+6}" y="${H-B-8}" font-size="11" fill="var(--mute)" font-weight="700">Poco conocido, mala imagen</text>
+ ${[-100,-50,0,50,100].map(v=>`<text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="var(--mute)">${v>0?'+':''}${v}</text>`).join('')}
+ <text x="${(L+W-R)/2}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--mute)">Conversación: comentarios por medición →</text>
+ <text transform="translate(12 ${(T+H-B)/2}) rotate(-90)" text-anchor="middle" font-size="11" fill="var(--mute)">Índice neto</text>`;
+ D.forEach(d=>{const vx=x(d.m.n/Math.max(1,d.ms.length)),vy=y(d.m.netoW),r=7+Math.min(10,d.men);
+  s+=`<circle${TIP(`<b>${d.c.nombre}</b>\nÍndice neto: ${d.m.netoW>0?'+':''}${d.m.netoW} (altura)\nConversación: ${Math.round(d.m.n/Math.max(1,d.ms.length))} comentarios por medición (${d.m.n} en ${d.ms.length} medición(es)) (posición horizontal)\nMencionado como alternativa: ${d.men} veces (tamaño)`)} cx="${vx}" cy="${vy}" r="${r}" fill="${d.col}" opacity=".85"></circle><text x="${vx}" y="${vy-r-4}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">${esc(corto(d.c.nombre))}</text>`});
+ return s+'</svg>'}
+
+function barrasH(D,filas,titulo){/* filas: [{lab,segs:[{v,col,t}]}] valores en % */
+ const W=380,rowH=32,L=118,H=filas.length*rowH+10;let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${titulo}">`;
+ filas.forEach((f,i)=>{const yy=6+i*rowH;let xx=L;s+=`<text x="${L-8}" y="${yy+18}" text-anchor="end" font-size="12" fill="var(--ink)">${esc((s=>s.length>18?s.slice(0,17)+'…':s)(corto(f.lab)))}</text>`;
+  f.segs.forEach(g=>{const w=Math.max(0,g.v)*(W-L-10)/100;if(w>0){s+=`<rect x="${xx}" y="${yy+4}" width="${w}" height="20" fill="${g.col}" rx="2"><title>${g.t}: ${Math.round(g.v)}%</title></rect>`;if(w>28)s+=`<text x="${xx+w/2}" y="${yy+18}" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">${Math.round(g.v)}%</text>`}xx+=w})});
+ return s+'</svg>'}
+
+function graficoTendencia(D){const series=D.map(d=>{const por={};d.ms.forEach(m=>{const f=(m.fcap||'').slice(0,10);(por[f]=por[f]||[]).push(m)});return {d,pts:Object.keys(por).sort().map(f=>({f,ms:por[f],k:metricas(por[f])}))}});
+ const fechas=[...new Set(series.flatMap(s=>s.pts.map(p=>p.f)))].sort();if(fechas.length<2)return '<p class="muted">Se necesitan mediciones en al menos 2 fechas distintas para comparar la tendencia.</p>';
+ const W=560,H=240,L=40,R=14,TP=14,B=30;const x=f=>L+fechas.indexOf(f)*(W-L-R)/(fechas.length-1),y=v=>TP+(100-v)*(H-TP-B)/200;
+ let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Tendencia comparada"><line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--mute)" stroke-dasharray="4 3"/>`+
+ [-100,-50,0,50,100].map(v=>`<text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="var(--mute)">${v}</text>`).join('')+
+ fechas.map(f=>`<text x="${x(f)}" y="${H-10}" text-anchor="middle" font-size="10" fill="var(--mute)">${fechaCorta(f).slice(0,5)}</text>`).join('');
+ series.forEach(({d,pts})=>{if(!pts.length)return;s+=`<polyline fill="none" stroke="${d.col}" stroke-width="2.5" points="${pts.map(p=>x(p.f)+','+y(p.k.netoW)).join(' ')}"/>`+pts.map((p,i)=>{const ant=pts[i-1];
+  const t=`<b>${d.c.nombre} · ${fechaCorta(p.f)}</b>\nÍndice neto del día: ${p.k.netoW>0?'+':''}${p.k.netoW}\n${p.ms.length} medición(es) ese día: ${fuentesTxt(p.ms)}\nComentarios: ${p.k.n} → ${p.k.P} positivos, ${p.k.U} neutros, ${p.k.N} negativos${ant?`\nFrente al ${fechaCorta(ant.f)}: ${p.k.netoW===ant.k.netoW?'igual':(p.k.netoW>ant.k.netoW?'subió ':'bajó ')+Math.abs(p.k.netoW-ant.k.netoW)+' puntos'}`:''}${p.k.n<30?'\nOjo: pocos comentarios ese día.':''}`;
+  return `<circle cx="${x(p.f)}" cy="${y(p.k.netoW)}" r="10" fill="transparent"${TIP(t)}/><circle cx="${x(p.f)}" cy="${y(p.k.netoW)}" r="4" fill="${d.col}" pointer-events="none"/>`}).join('')});
+ return s+'</svg>'}
+
+function semaforo(d){const f=[],r=[];const m=d.m,e=d.e,pct=v=>Math.round(v*100/m.n);
+ if(m.netoW>=20)f.push(`Imagen favorable (índice ${m.netoW>0?'+':''}${m.netoW}).`);else if(m.netoW<=-20)r.push(`Imagen desfavorable (índice ${m.netoW}).`);
+ if(d.men>=5)f.push(`Lo mencionan como alternativa en publicaciones de otros (${d.men} veces).`);
+ if(e.pos&&e.posTxt/e.pos>=0.75)f.push('Su apoyo viene argumentado, no solo con emojis.');else if(e.pos&&e.posTxt/e.pos<0.6)r.push('Buena parte de su apoyo es solo emojis: apoyo liviano.');
+ if(e.repP>e.repN&&e.repP>=3)f.push('Sus defensores ganan las discusiones en las respuestas.');else if(e.repN>e.repP&&e.repN>=3)r.push('En las discusiones pierde más de lo que gana.');
+ if(e.neg&&e.duro/m.n>=0.25)r.push(`Rechazo duro alto: ${pct(e.duro)}% dice "jamás" o lo asocia con corrupción. Difícil de revertir.`);
+ if(e.neg&&e.blando/m.n>=0.2)f.push(`${pct(e.blando)}% de las críticas son por cansancio o gestión: es rechazo blando, se puede trabajar con mensaje.`);
+ const tc=Object.entries(m.th).sort((a,b)=>b[1]-a[1]);if(tc[0]&&tc[0][0]==='T')r.push('La crítica principal es su trato con la gente.');
+ if(m.th.T&&m.th.T/m.n>=0.04)r.push(`Hay testimonios de mal trato (${m.th.T}).`);
+ if(d.r.total){const bur=(d.r.angry+d.r.haha)*100/d.r.total;if(bur>=40)r.push(`${Math.round(bur)}% de las reacciones son 😡 o 😆.`);else if(bur<=15)f.push(`Pocas reacciones de enojo o burla (${Math.round(bur)}%).`)}
+ if(m.n<100)r.push('Muestra insuficiente: los resultados pueden cambiar mucho.');
+ if(m.bodega)r.push(`Señales de bodega: revisar antes de confiar en los datos. <a href="#" class="noprint" onclick="verBodega('${d.c.id}');return false">Ver comentarios</a>`);
+ if(Object.keys(e.porTipo).length<2)r.push('Medido en un solo tipo de fuente: conviene sumar medios o grupos.');
+ const regla='Estas conclusiones salen de reglas fijas sobre los datos: índice ≥ +20 o ≤ −20; mencionado 5+ veces como alternativa; 75%+ del apoyo con argumentos; rechazo duro ≥ 25%; rechazo blando ≥ 20%; 40%+ de reacciones 😡😆; menos de 100 comentarios; un solo tipo de fuente.';
+ return `<div class="card"><h2${T('<b>'+d.c.nombre+'</b>\n'+regla)} style="color:${d.col}">${esc(d.c.nombre)}</h2><div class="sem"><div><b style="color:var(--pos)">Fortalezas</b><ul>${f.map(x=>`<li>${x}</li>`).join('')||'<li class="muted">Ninguna clara todavía</li>'}</ul></div><div><b style="color:var(--neg)">Riesgos</b><ul>${r.map(x=>`<li>${x}</li>`).join('')||'<li class="muted">Ninguno claro todavía</li>'}</ul></div></div></div>`}
+
+function renderAnalisis(){const el=$('t-analisis');const D=datos();
+ if(!D.length){el.innerHTML='<div class="card">Necesitas al menos una medición para ver los análisis.</div>';return}
+ let h=`<div class="noprint" style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap"><span style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">${filtroMun('renderAnalisis')}<span class="muted">${D.length} candidato(s) con mediciones${D.length<2?' · agrega otro candidato para comparar':''}</span></span><button class="btn" onclick="imprimirAnalisis()">Descargar análisis PDF</button></div>
+ <div id="print-head2" class="hide"><h1>Radar Electoral · Análisis comparativo de Opinión Digital</h1><p>Generado el ${new Date().toLocaleString('es-CO',{dateStyle:'long',timeStyle:'short'})} · Análisis de conversación digital – uso interno, no es encuesta.</p><p>Mide el ánimo de la conversación en Facebook, no la intención de voto. Compara solo candidatos medidos en las mismas fuentes y fechas. Las conclusiones automáticas son una guía: revísalas con tu conocimiento del territorio.</p></div>`;
+ const GR=(DB.grupos||[]).filter(g=>g.cands.some(id=>enMun(cand(id))));
+ if(GR.length){h+=`<div class="card"><h2 data-tip="<b>Publicaciones con varios candidatos</b>\nPublicaciones donde se pregunta por varios aspirantes a la vez (ej: ¿quiénes podrían ser alcalde?). Es la comparación más justa porque todos se miden con la misma gente y el mismo día.">Publicaciones con varios candidatos</h2><p class="muted">La comparación más justa: la misma gente, el mismo día y la misma pregunta para todos. <b>Cuota</b> = qué parte de la conversación se lleva cada uno. <b>Neto</b> = qué tan bien lo ven quienes lo mencionan.</p>`;
+  [...GR].sort((a,b)=>b.fcap.localeCompare(a.fcap)).forEach(g=>{const q=cuotaGrupo(g);const fil=[...q.fil].sort((a,b)=>b.cuota-a.cuota);
+   h+=`<h3>${esc(fuente(g.fuente).nombre)} · ${esc(g.fcap.slice(0,10))}${g.desc?' · '+esc(g.desc):''}</h3><div class="grid"><div>${barrasH([],fil.map(f=>({lab:cand(f.id).nombre,segs:[{v:f.cuota,col:'var(--acc)',t:'Cuota de conversación'}]})),'Cuota de conversación')}<div class="legend"><span><i style="background:var(--acc)"></i>Cuota de conversación</span></div></div>
+   <div>${barrasH([],fil.map(f=>({lab:cand(f.id).nombre,segs:f.n?[{v:f.P*100/f.n,col:'var(--pos)',t:'Positivos'},{v:f.U*100/f.n,col:'var(--neu)',t:'Neutros'},{v:f.N*100/f.n,col:'var(--neg)',t:'Negativos'}]:[]})),'Tono por candidato')}<div class="legend"><span><i style="background:var(--pos)"></i>Positivos</span><span><i style="background:var(--neu)"></i>Neutros</span><span><i style="background:var(--neg)"></i>Negativos</span></div></div></div>
+   <div class="tbl"><table><thead><tr><th>Candidato</th><th${T('<b>Menciones</b>\nComentarios principales de esta publicación que hablan de este candidato.')}>Menciones</th><th${T('<b>Cuota de conversación</b>\nMenciones del candidato ÷ total de menciones de todos los candidatos en esta publicación.')}>Cuota</th><th${T('<b>Neto</b>\n% positivos − % negativos entre los comentarios que lo mencionan en esta publicación.')}>Neto</th></tr></thead><tbody>${fil.map(f=>`<tr><td${T(tipCand(cand(f.id),DB.meds.filter(m=>m.cand===f.id)))}>${esc(cand(f.id).nombre)}</td><td${T(`${f.n} comentarios mencionan a ${cand(f.id).nombre}: ${f.P} positivos, ${f.U} neutros, ${f.N} negativos.`)}>${f.n}</td><td${T(`${f.n} de ${fil.reduce((a,b)=>a+b.n,0)} menciones en esta publicación = ${f.cuota}%.`)}>${f.cuota}%</td><td style="font-weight:700;color:${f.neto>=0?'var(--pos)':'var(--neg)'}">${f.n?(f.neto>0?'+':'')+f.neto:'—'}</td></tr>`).join('')}</tbody></table></div>
+   ${(g.otros||[]).length?`<p class="muted"><b>Otros nombres que propone la gente:</b> ${g.otros.map(o=>esc(titulo(o.k))+' ('+o.n+')').join(', ')}</p>`:''}<p class="muted">De ${q.principales} comentarios principales: ${q.S} no mencionan a ningún candidato y <b>${q.A}</b> rechazan a todos (${q.principales?Math.round(q.A*100/q.principales):0}%).${q.A/(q.principales||1)>=0.15?' Hay un ánimo fuerte de "ninguno me representa": espacio para una cara nueva.':''}</p>`});
+  h+=nota('Un candidato con mucha cuota pero neto negativo es muy conocido y polémico. Uno con poca cuota y neto positivo tiene buena imagen, pero le falta que lo conozcan.')+`</div>`}
+ h+=`<div class="card keep"><h2 data-tip="<b>Mapa de posicionamiento</b>\nHorizontal: cuánta conversación genera (comentarios por medición) = qué tan conocido es.\nVertical: índice neto = qué tan bien lo ven.\nTamaño del círculo: veces que lo mencionan como alternativa.">1. Mapa de posicionamiento</h2><p class="muted">¿Qué tan conocido es y qué tan bien lo ven? El tamaño del círculo indica cuántas veces lo mencionan como alternativa.</p>${graficoMapa(D)}${nota('Arriba a la derecha está la mejor posición. Abajo a la derecha: lo conocen, pero lo rechazan. A la izquierda: falta que lo conozcan, y esa es una oportunidad si su imagen es buena.')}</div>`;
+ h+=`<div class="grid">`;
+ h+=`<div class="card"><h2 data-tip="<b>Tono</b>\nPorcentaje de comentarios positivos, neutros y negativos de cada candidato, sobre sus comentarios principales.">2. Tono de la conversación</h2>${barrasH(D,D.map(d=>({lab:d.c.nombre,segs:[{v:d.m.P*100/d.m.n,col:'var(--pos)',t:'Positivos'},{v:d.m.U*100/d.m.n,col:'var(--neu)',t:'Neutros'},{v:d.m.N*100/d.m.n,col:'var(--neg)',t:'Negativos'}]})),'Tono')}<div class="legend"><span><i style="background:var(--pos)"></i>Positivos</span><span><i style="background:var(--neu)"></i>Neutros</span><span><i style="background:var(--neg)"></i>Negativos</span></div></div>`;
+ h+=`<div class="card"><h2 data-tip="<b>Tipo de rechazo</b>\nDuro: dicen &quot;jamás&quot;, &quot;nunca&quot;, &quot;Dios nos libre&quot; o lo asocian con corrupción. Casi no cambia.\nBlando: critican por cansancio (&quot;ya tuvo su oportunidad&quot;) o por gestión. Se puede trabajar con mensaje.\nPorcentajes sobre el total de comentarios del candidato.">3. Tipo de rechazo</h2>${barrasH(D,D.map(d=>({lab:d.c.nombre,segs:[{v:d.e.duro*100/d.m.n,col:'var(--neg)',t:'Rechazo duro'},{v:d.e.blando*100/d.m.n,col:'var(--warn)',t:'Rechazo blando'},{v:(d.e.neg-d.e.duro-d.e.blando)*100/d.m.n,col:'var(--neu)',t:'Otro'}]})),'Rechazo')}<div class="legend"><span><i style="background:var(--neg)"></i>Duro ("jamás", corrupción)</span><span><i style="background:var(--warn)"></i>Blando (cansancio, gestión)</span><span><i style="background:var(--neu)"></i>Otro</span></div>${nota('El rechazo duro casi no se mueve. El blando se puede trabajar con mensaje y propuestas.')}</div>`;
+ h+=`<div class="card"><h2 data-tip="<b>Calidad del apoyo</b>\nCon argumentos: comentarios positivos con texto.\nSolo emoji: positivos que son solo 👏❤️.\nUn apoyo con argumentos indica seguidores más firmes.">4. Calidad del apoyo</h2>${barrasH(D,D.map(d=>({lab:d.c.nombre,segs:[{v:d.e.posTxt*100/d.m.n,col:'var(--pos)',t:'Apoyo con argumentos'},{v:(d.e.pos-d.e.posTxt)*100/d.m.n,col:'color-mix(in srgb,var(--pos) 40%,transparent)',t:'Solo emoji'}]})),'Apoyo')}<div class="legend"><span><i style="background:var(--pos)"></i>Con argumentos</span><span><i style="background:color-mix(in srgb,var(--pos) 40%,transparent)"></i>Solo emoji</span></div>${nota('Porcentaje sobre el total de comentarios. El apoyo con argumentos indica seguidores más firmes.')}</div>`;
+ h+=`</div>`;
+ // temas
+ const tN=Object.keys(TEMAS_N),tP=Object.keys(TEMAS_P);const cell=(v,n,col)=>{const p=n?Math.round(v*100/n):0;return `<td${T(`${v} de ${n} comentarios (${p}%)`)} style="background:color-mix(in srgb,${col} ${Math.min(80,p*2)}%,transparent)">${p}%</td>`};
+ h+=`<div class="card"><h2 data-tip="<b>Temas</b>\nPorcentaje de los comentarios de cada candidato que tocan cada tema. Rojo: temas de crítica. Verde: temas de elogio. Pasa el mouse por cada celda para ver la cantidad.">6. De qué se habla de cada uno</h2><p class="muted">Porcentaje sobre el total de comentarios de cada candidato. Entre más intenso el color, más pesa ese tema.</p><div class="tbl"><table class="hm"><thead><tr><th>Candidato</th>${tN.map(k=>`<th style="color:var(--neg)">${TEMAS_N[k]}</th>`).join('')}${tP.map(k=>`<th style="color:var(--pos)">${TEMAS_P[k]}</th>`).join('')}</tr></thead><tbody>${D.map(d=>`<tr><td><b>${esc(d.c.nombre)}</b></td>${tN.map(k=>cell(d.m.th[k]||0,d.m.n,'var(--neg)')).join('')}${tP.map(k=>cell(d.m.tp[k]||0,d.m.n,'var(--pos)')).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+ // brecha por fuente
+ h+=`<div class="card keep"><h2 data-tip="<b>Brecha por fuente</b>\nÍndice neto calculado por separado en cada tipo de fuente. Si en su propia página sale muy bien y en grupos o medios sale mal (brecha de 40 puntos o más), vive en una burbuja de seguidores.">7. ¿Cambia según la fuente?</h2><p class="muted">Índice neto en cada tipo de fuente. Si en su propia página sale muy bien pero en grupos y medios sale mal, vive en una burbuja.</p><div class="tbl"><table><thead><tr><th>Candidato</th>${Object.keys(TIPO).map(k=>`<th>${TIPO[k]}</th>`).join('')}<th>Brecha</th></tr></thead><tbody>${D.map(d=>{const v=Object.keys(TIPO).map(k=>{const x=d.e.porTipo[k];return x&&x.n?Math.round((x.P-x.N)*100/x.n):null});const ok=v.filter(z=>z!=null);const br=ok.length>1?Math.max(...ok)-Math.min(...ok):null;
+  return `<tr><td><b>${esc(d.c.nombre)}</b></td>${v.map((z,ix)=>{const k=Object.keys(TIPO)[ix];const x=d.e.porTipo[k];return `<td${x&&x.n?T(`${TIPO[k]}: ${x.P} positivos y ${x.N} negativos de ${x.n} comentarios = ${z>0?'+':''}${z}`):T(`No hay mediciones de ${d.c.nombre} en fuentes de tipo ${TIPO[k].toLowerCase()}.`)} style="font-weight:700;color:${z==null?'var(--mute)':z>=0?'var(--pos)':'var(--neg)'}">${z==null?'—':(z>0?'+':'')+z}</td>`}).join('')}<td>${br==null?'<span class="muted">Falta medir en otro tipo de fuente</span>':br>=40?`<span class="pill N">${br} puntos: posible burbuja</span>`:`<span class="pill P">${br} puntos</span>`}</td></tr>`}).join('')}</tbody></table></div></div>`;
+ h+=(()=>{const F=D.map(d=>({d,s:sexoStats(d.ms)})).filter(x=>x.s.con);if(!F.length)return `<div class="card keep"><h2>10. Mujeres y hombres (estimado)</h2><p class="muted">Aún no hay datos. Se calcula en las mediciones nuevas, o en las guardadas usando "Completar hombres y mujeres" en Mediciones.</p></div>`;
+ const col=v=>v==null?'var(--mute)':v>=0?'var(--pos)':'var(--neg)',fmt=v=>v==null?'—':(v>0?'+':'')+v;
+ return `<div class="card keep"><h2 data-tip="<b>Mujeres y hombres</b>\nEl sexo de quien comenta se estima por su primer nombre (María, Carlos…); el nombre no se guarda. Muestra con quién conecta mejor cada candidato. Diferencia de 15 puntos o más = se nota la diferencia.">10. Mujeres y hombres (estimado)</h2><p class="muted">Índice neto de cada candidato entre las mujeres y entre los hombres que comentan. Sirve para saber con quién conecta mejor cada uno.</p>
+ <div class="tbl"><table><thead><tr><th>Candidato</th><th>Parte de mujeres</th><th style="color:#be185d">Neto mujeres</th><th style="color:#1f5fbf">Neto hombres</th><th>Diferencia</th><th>Sin identificar</th></tr></thead><tbody>${F.map(({d,s})=>{const id=s.H.n+s.M.n;const df=(s.H.n>=10&&s.M.n>=10)?s.M.neto-s.H.neto:null;const poca=s.H.n<10||s.M.n<10;
+  return `<tr><td><b>${esc(d.c.nombre)}</b></td><td style="min-width:110px"><div class="bar"><i style="width:${id?s.M.n*100/id:0}%;background:#be185d"></i><i style="width:${id?s.H.n*100/id:0}%;background:#1f5fbf"></i></div><span class="muted">${id?Math.round(s.M.n*100/id):0}% mujeres</span></td><td style="font-weight:700;color:${col(s.M.neto)}">${fmt(s.M.neto)} <span class="muted">(${s.M.n})</span></td><td style="font-weight:700;color:${col(s.H.neto)}">${fmt(s.H.neto)} <span class="muted">(${s.H.n})</span></td><td>${df==null?(poca?'<span class="muted">Muestra pequeña</span>':'—'):Math.abs(df)<15?'<span class="muted">Parejo</span>':df>0?`<span class="pill P" style="background:color-mix(in srgb,#be185d 15%,transparent);color:#be185d">Mejor con mujeres (${df})</span>`:`<span class="pill P" style="background:color-mix(in srgb,#1f5fbf 15%,transparent);color:#1f5fbf">Mejor con hombres (${-df})</span>`}</td><td class="muted">${s.con?Math.round(s.sin*100/s.con):0}%</td></tr>`}).join('')}</tbody></table></div>
+ ${nota('Estimado por el primer nombre de quien comenta: no es exacto. Cuentas con apodos, páginas o nombres poco comunes quedan sin identificar. Con menos de 30 comentarios por grupo, tómalo solo como una pista.')}</div>`})();
+ h+=`<div class="card keep"><h2 data-tip="<b>Tendencia</b>\nÍndice neto de cada candidato en cada fecha de captura. Necesita mediciones en al menos 2 fechas distintas.">8. Tendencia comparada</h2>${graficoTendencia(D)}${leyenda(D)}</div>`;
+ h+=`<h2 style="font-size:16px;margin:20px 0 10px;break-after:avoid">9. Fortalezas y riesgos de cada candidato</h2><div class="grid">${D.map(semaforo).join('')}</div>`;
+ h+=`<div class="card keep noprint"><h2>Cómo leer este análisis</h2><ul class="muted" style="margin:0;padding-left:18px"><li>Mide el ánimo de la conversación en Facebook, no la intención de voto.</li><li>Compara solo candidatos medidos en las mismas fuentes y fechas.</li><li>Las conclusiones automáticas son una guía: revísalas con tu conocimiento del territorio.</li><li>Uso interno. No publicar como encuesta.</li></ul></div>`;
+ el.innerHTML=h}
+function imprimirAnalisis(){show('analisis');const ph=$('print-head2');ph.id='print-head';const t=document.title;document.title='Radar_Analisis_'+new Date().toISOString().slice(0,10);
+ const ph1=document.querySelector('#t-tablero #print-head');if(ph1)ph1.id='print-head-off';
+ setTimeout(()=>{window.print();document.title=t;ph.id='print-head2';if(ph1)ph1.id='print-head'},150)}
+/* ---------- Nueva medición ---------- */
+let PREV=null;
+/* ---------- Publicación con varios candidatos ---------- */
+function corto(n){const w=n.split(/\s+/);return (w.length<=2||n.length<=18)?n:w[0]+' '+w[w.length>=4?w.length-2:w.length-1]}
+let FMUN=null;
+function munsCon(){const s=new Set();DB.cands.forEach(c=>{if(c.mun)s.add(c.mun)});DB.meds.forEach(m=>{const c=cand(m.cand);if(c.mun)s.add(c.mun)});return [...s].sort((a,b)=>a.localeCompare(b,'es'))}
+function munActual(){const ms=munsCon();if(FMUN&&ms.includes(FMUN))return FMUN;
+ const last=[...DB.meds].sort((a,b)=>b.fcap.localeCompare(a.fcap))[0];return last?cand(last.cand).mun:(ms[0]||'*')}
+function filtroMun(cb){const ms=munsCon();if(ms.length<2)return '';const a=munActual();
+ return `<span class="mtabs" role="tablist" aria-label="Municipio">${ms.map(m=>`<button type="button" role="tab" aria-selected="${m===a}" class="mtab${m===a?' on':''}" data-m="${esc(m)}" onclick="FMUN=this.dataset.m;${cb}()">${esc(m)}</button>`).join('')}</span>`}
+const enMun=c=>{const a=munActual();return a==='*'||c.mun===a};
+const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+function termsM(c){const w=norm(c.nombre).split(/\s+/).filter(Boolean);let base=w.length<=2?w:w.length===3?[w[2]]:w.slice(-2);
+ return [...new Set([norm(c.nombre),...base.filter(x=>x.length>3),...(c.alias||[]).map(norm)])].filter(Boolean)}
+function posMencion(t,c){let best=-1;for(const term of termsM(c)){const m=new RegExp('(^|[^a-z0-9ñ])'+reEsc(term)+'(?=[^a-z0-9ñ]|$)').exec(t);if(m){const i=m.index+m[1].length;if(best<0||i<best)best=i}}return best}
+function segTono(seg){const t=seg;let p=0,n=0;
+ POS.forEach(k=>{if(t.includes(k))p++});NEG.forEach(k=>{if(t.includes(k))n++});if(/para que \S+ \S+/.test(t))n--;if(/(no esta mal|nada mal|no es mala|no es malo)/.test(t))n-=2;
+ if(/(^|[^a-z])(si+|claro|vamos|apoyo|voto|mi voto|el es|ella es|ese es|esa es|con el|con ella|el mejor|la mejor|de una|listo)([^a-z]|$)/.test(t))p++;
+ if(/(^|[^a-z])(no|nunca|jamas|ni|tampoco|menos)([^a-z]|$)/.test(t))n++;
+ if(/(^|[^a-z])mejor([^a-z]|$)/.test(t)&&!/(mejor no|mejor que no|nada mejor)/.test(t))p++;if(/(sera (el|la) (proxim[oa] )?alcald|el proximo alcalde|la proxima alcaldesa|hay que votar por|votar por|voto por|vamos con|total apoyo|apoyo total|mi voto es)/.test(t))p+=2;if(/[👏❤♥🙏💪✨👌✅👍🔥]/u.test(t))p+=0.5;if(/[😡🙄😒🤮👎💩❌🤡]/u.test(t))n+=0.5;if(/ja(ja)+|jaj/.test(t))n+=0.3;
+ const tono=p>n?'P':n>p?'N':'U';return {tono,rev:p===n||(p>0&&n>0)}}
+const GEN={S:'No menciona a ningún candidato',A:'Rechazo a todos ("todos son lo mismo")'};
+function procesarVarios(items,ids,dif){const cs=ids.map(cand);const bus=hacerBuscador(cs);
+ return items.map(o=>{const t=norm(o.text);const pos=bus(o.text);
+  const base={a:hash(o.name),g:sexoDe(o.name),t:o.text,r:!!o.reply,x:false,min:(dif!=null&&o.age!=null)?Math.max(0,Math.round(dif-o.age)):null};
+  if(!pos.length){const k=segTono(t);const todos=/(todos|ninguno|ningun|los mismos|las mismas|lo mismo|ni uno|ni una|de lo mismo|que se vayan)/.test(t);
+   return {...base,m:[],gen:(todos&&k.tono!=='P')?'A':'S',rev:bus.compartido(o.text)}}
+  const m=pos.map((x,j)=>{const seg=(j===0?t.slice(0,pos[1]?pos[1].i:t.length):t.slice(x.i,pos[j+1]?pos[j+1].i:t.length));const k=segTono(pos.length===1?t:seg);return {c:x.c.id,tono:k.tono,th:tema(pos.length===1?t:seg,k.tono,x.c),rev:k.rev||x.dud,dud:x.dud}});
+  return {...base,m,gen:null,rev:pos.length>1||m.some(z=>z.rev)}})}
+function renderPrevVarios(){const only=$('only-rev').checked;const ids=selIds();setTimeout(pintarOtros,0);
+ const cnt={};ids.forEach(i=>cnt[i]={P:0,N:0,U:0,k:0});let S=0,A=0;
+ PREV.filter(p=>!p.x&&!p.r).forEach(p=>{if(!p.m.length){p.gen==='A'?A++:S++}p.m.forEach(z=>{if(cnt[z.c]){cnt[z.c][z.tono]++;cnt[z.c].k++}})});
+ const tot=Object.values(cnt).reduce((a,b)=>a+b.k,0)||1;
+ $('prev-sum').innerHTML=`<div class="tbl"><table><thead><tr><th>Candidato</th><th>Menciones</th><th>Cuota</th><th>Tono</th><th>Neto</th></tr></thead><tbody>${ids.map(i=>{const c=cnt[i];return `<tr><td>${esc(cand(i).nombre)}</td><td>${c.k}</td><td>${Math.round(c.k*100/tot)}%</td><td style="min-width:120px">${c.k?barra(c.P,c.N,c.U):'—'}</td><td style="font-weight:700;color:${c.P>=c.N?'var(--pos)':'var(--neg)'}">${c.k?Math.round((c.P-c.N)*100/c.k):'—'}</td></tr>`}).join('')}</tbody></table></div>
+ <p class="muted">Sin candidato: ${S} · Rechazo a todos: ${A} · Para revisar: ${PREV.filter(p=>p.rev&&!p.x).length}. Revisa sobre todo los que mencionan a varios candidatos.</p>`;
+ $('prev-head').innerHTML='<th>#</th><th>Comentario</th><th>Candidatos mencionados y tono</th><th>Agregar candidato</th><th>Quitar</th>';
+ $('prev-body').innerHTML=PREV.map((p,i)=>{if(only&&!p.rev)return '';const falt=ids.filter(id=>!p.m.some(z=>z.c===id));
+  const chips=p.m.length?p.m.map((z,j)=>`<span class="chip ${z.tono}"${z.dud?' title="Coincidencia dudosa: el nombre también es una palabra común o está mal escrito. Revisa."':''}>${esc(corto(cand(z.c).nombre))}${z.dud?' <b style="color:var(--warn)">?</b>':''}<select data-i="${i}" data-j="${j}" data-k="mt">${Object.entries(TONO).map(([k,v])=>`<option value="${k}"${z.tono===k?' selected':''}>${v}</option>`).join('')}</select><button data-i="${i}" data-j="${j}" data-k="mrm" title="Quitar">×</button></span>`).join(''):`<select data-i="${i}" data-k="gen">${Object.entries(GEN).map(([k,v])=>`<option value="${k}"${p.gen===k?' selected':''}>${v}</option>`).join('')}</select>`;
+  return `<tr class="${p.rev?'rev':''} ${p.r?'rep':''}"><td>${i+1}</td><td>${p.r?'<span class="pill U">respuesta</span> ':''}${esc(p.t)}</td><td>${chips}</td><td>${falt.length?`<select data-i="${i}" data-k="madd"><option value="">+ Agregar…</option>${falt.map(id=>`<option value="${id}">${esc(cand(id).nombre)}</option>`).join('')}</select>`:''}</td><td><input type="checkbox" data-i="${i}" data-k="x" ${p.x?'checked':''} style="width:auto"></td></tr>`}).join('')}
+
+/* ---------- Detectar candidatos desde el texto de la publicación ---------- */
+const PART=new Set(['de','del','la','las','los','y']);
+const NOPE=/^(sera|fue|era|seria|va|dijo|gano|perdio|sigue|todos|nuevo|nueva|gente|pueblo|ciudad|alcalde|alcaldesa|candidato|candidata|senor|senora|doctor|doctora|dios|gracias|seguir|responder|autor|editado|ojo|los|las|el|la|que|quien|quienes|por|para|pereira|zarzal|colombia|alcaldia|concejo|gobernacion|asamblea|partido|nota|importante|atencion|ultima|hora|urgente|actual|hoy)$/;
+function titulo(s){return s.toLowerCase().split(/\s+/).map((w,i)=>PART.has(w)&&i?w:w.charAt(0).toLocaleUpperCase('es')+w.slice(1)).join(' ')}
+function tokSet(n){return norm(n).replace(/[^a-z0-9ñ ]/g,' ').split(/\s+/).filter(w=>w.length>=2&&!PART.has(w))}
+function mismaPersona(a,b){const A=tokSet(a),B=tokSet(b);if(A.length<2||B.length<2)return norm(a)===norm(b);const [c,l]=A.length<=B.length?[A,B]:[B,A];return c.every(w=>l.includes(w))}
+function detectar(post){const out=[];
+ const L=post.replace(/\r/g,'').split('\n');
+ // si el texto trae comentarios, solo se analiza la publicación (lo que va antes del primer comentario)
+ let fin=L.length;for(let i=0;i<L.length-1;i++){if(L[i+1].trim()==='·'||/^responder$/i.test(L[i].trim())){fin=i;break}}
+ for(let l of L.slice(0,fin)){l=l.trim();if(!l||/\?\s*$/.test(l))continue;
+  l=l.replace(/^[^A-Za-zÁÉÍÓÚÑÜáéíóúñü]+/u,'');const head=l.split(/\s+[–—\-:|]\s+|\s*[“"«(]/)[0].trim().replace(/[,;:]+$/,'');
+  const w=head.split(/\s+/);if(w.length<2||w.length>5||head.length>45)continue;
+  if(w.some(x=>/\./.test(x)||x.replace(/[^A-Za-zÁÉÍÓÚÑÜáéíóúñü]/g,'').length<2&&!PART.has(x.toLowerCase())))continue;
+  const core=w.filter(x=>!PART.has(x.toLowerCase()));if(core.length<2)continue;
+  const caps=head===head.toLocaleUpperCase('es')&&core.every(x=>/^[A-ZÁÉÍÓÚÑÜ]{2,}$/u.test(x));
+  const tcase=core.every(x=>/^[A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]{2,}$/u.test(x));
+  if(!(caps||(tcase&&head!==l)))continue;if(core.some(x=>NOPE.test(norm(x))))continue;
+  const nombre=caps?titulo(head):head;
+  const dup=out.findIndex(o=>mismaPersona(o,nombre));if(dup>=0){if(tokSet(nombre).length>tokSet(out[dup]).length)out[dup]=nombre;continue}
+  out.push(nombre)}
+ const t=L.slice(0,fin).join('\n');const m=/(alcald[ií]a|gobernaci[oó]n|concejo|asamblea)\s+(?:municipal\s+|departamental\s+)?de\s+([A-ZÁÉÍÓÚÑ][\wáéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][\wáéíóúñ]+)?)/i.exec(t);
+ const cargo=m?({alcal:'Alcaldía',gober:'Gobernación',conce:'Concejo',asamb:'Asamblea'})[norm(m[1]).slice(0,5)]:'Alcaldía';
+ return {nombres:out,cargo,mun:m?titulo(m[2]):'',cortado:fin<L.length}}
+function buscarRegistrado(n,mun){const mu=norm(mun||'');const pool=DB.cands.filter(c=>!mu||norm(c.mun||'')===mu);const x=pool.find(c=>mismaPersona(c.nombre,n));if(x)return x;
+ const t=tokSet(n);if(t.length===1){const hits=pool.filter(c=>tokSet(c.nombre).includes(t[0])||(c.alias||[]).map(norm).includes(t[0]));if(hits.length===1)return hits[0]}return null}
+function limpiarAlias(arr,nombre){const nn=norm(nombre||'');const s=new Set();return arr.map(a=>norm(a).trim()).filter(a=>a&&a!==nn&&!s.has(a)&&s.add(a))}
+function aliasAuto(nombre){const w=norm(nombre).split(/\s+/).filter(x=>!PART.has(x));const a=[];if(w.length===3)a.push(w.slice(0,2).join(' '));if(w.length>=4)a.push(w[2]);return a}
+let DET=null;
+function textosDe(raw){const it=parse(raw);return it.map(o=>o.text)}
+function proponerDesdeComentarios(textos,mun){const reg=DB.cands.filter(c=>!mun||norm(c.mun||'')===norm(mun));const out=[];
+ if(reg.length){const bus=hacerBuscador(reg);const cnt={};textos.forEach(t=>bus(t).forEach(z=>{cnt[z.c.id]=(cnt[z.c.id]||0)+1}));
+  Object.entries(cnt).sort((a,b)=>b[1]-a[1]).forEach(([id,n])=>out.push({nombre:cand(id).nombre,origen:'com',n,id}))}
+ otrosNombres(textos,reg).forEach(o=>{const nom=titulo(o.k);if(!out.some(x=>mismaPersona(x.nombre,nom)))out.push({nombre:nom,origen:'com',n:o.n})});
+ return out}
+function mostrarDet(items,mun,cargo,msg,auto){DET={items,mun,cargo,auto};
+ if(!items.length){$('det-msg').textContent='No encontré nombres de candidatos. Puedes agregarlos en Candidatos y fuentes.';$('det-res').innerHTML='';return}
+ $('det-msg').textContent=msg;
+ $('det-res').innerHTML=`<div class="row" style="margin:10px 0"><div><label>Municipio</label><input id="det-mun" value="${esc(mun||'')}" placeholder="Ej: Pereira"></div><div><label>Cargo</label><select id="det-car">${['Alcaldía','Concejo','Gobernación','Asamblea'].map(c=>`<option${c===cargo?' selected':''}>${c}</option>`).join('')}</select></div></div>
+ <div class="tbl"><table><thead><tr><th>Usar</th><th>Nombre</th><th>Apodos (separados por coma)</th><th>De dónde sale</th><th>Estado</th></tr></thead><tbody>${items.map((d,i)=>{const n=d.nombre;const ya=d.id?cand(d.id):buscarRegistrado(n,mun);const marcado=d.origen==='pub'||!!ya||d.n>=3;
+  return `<tr><td><input type="checkbox" data-d="${i}" ${marcado?'checked':''} style="width:auto"></td><td><input id="dn-${i}" value="${esc(ya?ya.nombre:n)}" ${ya?'disabled':''} placeholder="Nombre completo"></td><td><input id="da-${i}" value="${esc((ya?limpiarAlias([...(ya.alias||[]),...(norm(ya.nombre)!==norm(n)?[n]:[])],ya.nombre):aliasAuto(n)).join(', '))}"></td>
+  <td class="muted">${d.origen==='pub'?'Publicación':`Comentarios · <b>${d.n}</b> mención(es)`}</td><td>${ya?`<span class="pill P">Ya registrado</span>${norm(ya.nombre)!==norm(n)?`<div class="muted" style="font-size:11px">Escrito como: ${esc(n)}</div>`:''}`:'<span class="pill U">Nuevo</span>'}${!ya&&tokSet(n).length<2?'<div class="muted" style="font-size:11px">Completa el nombre</div>':''}</td></tr>`}).join('')}</tbody></table></div>
+ <p class="muted">Los que salen de los comentarios pueden ser aspirantes que la gente propone, o solo otras personas. Deja marcados solo los posibles candidatos y completa su nombre. Los apodos (ej: "Gallo", "Steven") mejoran la detección.</p>
+ <button class="btn" id="b-det-ok" style="margin-top:6px">${auto?'Usar estos candidatos y procesar':'Usar estos candidatos'}</button>`;
+ $('b-det-ok').onclick=()=>{const mun=$('det-mun').value.trim(),car=$('det-car').value;const usar=[];
+  DET.items.forEach((d,i)=>{if(!document.querySelector(`[data-d="${i}"]`).checked)return;const nombre=$('dn-'+i).value.trim()||d.nombre;const al0=$('da-'+i).value.split(',').map(s=>s.trim()).filter(Boolean);
+   let c=d.id?cand(d.id):buscarRegistrado(nombre,mun)||buscarRegistrado(d.nombre,mun);const al=limpiarAlias([...al0,...(norm(nombre)!==norm(d.nombre)?[d.nombre]:[])],c?c.nombre:nombre);
+   if(c){c.alias=limpiarAlias([...(c.alias||[]),...al],c.nombre)}else{c={id:uid(),nombre,mun,cargo:car,alias:al};DB.cands.push(c)}if(!usar.includes(c.id))usar.push(c.id)});
+  save();opts();document.querySelectorAll('#f-cands input').forEach(x=>x.checked=usar.includes(x.value));
+  pintarFuentes();$('det-res').innerHTML='';
+  if(!$('f-desc').value&&$('f-post').value.trim()){const first=$('f-post').value.trim().split('\n')[0].replace(/^[^A-Za-zÁÉÍÓÚÑ¿¡]+/u,'');$('f-desc').value=first.slice(0,90)}
+  if(DET.auto&&usar.length>=2){$('det-msg').textContent=`Listo: ${usar.length} candidatos de ${mun||'—'}.`;$('b-proc').click()}
+  else $('det-msg').textContent=`Listo: ${usar.length} candidatos de ${mun||'—'} marcados para esta publicación.${usar.length<2?' Marca al menos 2.':' Revisa la fuente y pega los comentarios abajo (o dale Procesar si ya los pegaste).'}`}}
+$('b-det').onclick=()=>{const t=$('f-post').value;if(!t.trim()){alert('Pega el texto de la publicación.');return}
+ const D=detectar(t);let items=D.nombres.map(n=>({nombre:n,origen:'pub'}));
+ const L=t.replace(/\r/g,'').split('\n');let corte=-1;for(let i=0;i<L.length-1;i++){if(L[i+1].trim()==='·'||/^responder$/i.test(L[i].trim())){corte=i;break}}
+ let nota='';
+ if(corte>=0){const parteCom=L.slice(corte).join('\n');const mun=D.mun||(fuente($('f-fuente').value).mun||'');
+  proponerDesdeComentarios(textosDe(parteCom),mun).forEach(x=>{if(!items.some(y=>mismaPersona(y.nombre,x.nombre)))items.push(x)});
+  if(!$('f-texto').value.trim()){$('f-texto').value=parteCom;nota=' También pasé los comentarios al cuadro de comentarios.'}
+  else nota=' El texto traía comentarios: los usé para buscar más nombres.'}
+ const pub=items.filter(x=>x.origen==='pub').length,com=items.length-pub;
+ mostrarDet(items,D.mun||(fuente($('f-fuente').value).mun||''),D.cargo,`Encontré ${pub} en la publicación y ${com} en los comentarios. Revisa y confirma.${nota}`,false)};
+function munFormulario(){if(modoVarios()){const ids=selIds();const ms=[...new Set(ids.map(i=>cand(i).mun).filter(Boolean))];return ms.length===1?ms[0]:''}return cand($('f-cand').value).mun||''}
+function pintarFuentes(sel){const mu=norm(munFormulario());const prev=sel||$('f-fuente').value;
+ const fs=[...DB.fuentes].sort((a,b)=>((norm(b.mun||'')===mu)-(norm(a.mun||'')===mu)));
+ const otras=fs.filter(f=>mu&&f.mun&&norm(f.mun)!==mu).length;
+ $('f-fuente').innerHTML=fs.map(f=>`<option value="${f.id}">${esc(f.nombre)}${f.mun?' · '+esc(f.mun):''} (${TIPO[f.tipo]})</option>`).join('')||'<option value="">— Agrega una fuente —</option>';
+ const ok=fs.find(f=>f.id===prev&&(!mu||!f.mun||norm(f.mun)===mu));const first=fs.find(f=>!mu||!f.mun||norm(f.mun)===mu);
+ if(ok)$('f-fuente').value=ok.id;else if(first)$('f-fuente').value=first.id;else{$('f-fuente').value='';if(fs.length){$('f-fuente').innerHTML='<option value="">— No hay fuentes de '+esc(munFormulario())+': agrega una —</option>'+$('f-fuente').innerHTML;$('f-fuente').value=''}}}
+$('b-nf').onclick=()=>{$('w-nf').classList.toggle('hide');if(!$('nf-mun').value)$('nf-mun').value=munFormulario();$('nf-nom').focus()};
+$('b-nf-ok').onclick=()=>{const n=$('nf-nom').value.trim();if(!n){alert('Escribe el nombre de la fuente.');return}
+ const f={id:uid(),nombre:n,tipo:$('nf-tipo').value,mun:$('nf-mun').value.trim()};DB.fuentes.push(f);save();$('nf-nom').value='';$('w-nf').classList.add('hide');pintarFuentes(f.id)};
+$('f-cand').addEventListener('change',()=>pintarFuentes());$('f-cands').addEventListener('change',()=>pintarFuentes());
+
+/* ---------- Volver a correr comentarios guardados ---------- */
+let EDIT=null;
+function segDe(t,pos,j){return pos.length===1?t:(j===0?t.slice(0,pos[1]?pos[1].i:t.length):t.slice(pos[j].i,pos[j+1]?pos[j+1].i:t.length))}
+function baseGrupo(g){const map=new Map();const key=c=>c.a+'|'+(c.r?1:0)+'|'+c.t;
+ DB.meds.filter(m=>m.grupo===g.id).forEach(m=>m.coms.forEach(c=>{const k=key(c);if(!map.has(k))map.set(k,{a:c.a,...('g' in c?{g:c.g}:{}),t:c.t,r:c.r,min:c.min??null,o:c.o??9e9,pares:{},gen:null});map.get(k).pares[m.cand]={tono:c.tono,th:c.th}}));
+ (g.generales||[]).forEach(c=>{const k=key(c);if(!map.has(k))map.set(k,{a:c.a,...('g' in c?{g:c.g}:{}),t:c.t,r:c.r,min:c.min??null,o:c.o??9e9,pares:{},gen:c.gen})});
+ return [...map.values()].sort((a,b)=>a.o-b.o)}
+function fusionar(base,ids){const bus=hacerBuscador(ids.map(cand));let nuevas=0,ganados=0;
+ const prev=base.map((b,idx)=>{const t=norm(b.t);const pos=bus(b.t);const m=[];
+  pos.forEach((x,j)=>{const ant=b.pares[x.c.id];if(ant)m.push({c:x.c.id,tono:ant.tono,th:ant.th});else{const s=segDe(t,pos,j);const k=segTono(s);m.push({c:x.c.id,tono:k.tono,th:tema(s,k.tono,x.c),dud:x.dud,nuevo:true});nuevas++}});
+  Object.entries(b.pares).forEach(([cid,v])=>{if(ids.includes(cid)&&!m.some(z=>z.c===cid))m.push({c:cid,tono:v.tono,th:v.th})});
+  if(m.length&&!Object.keys(b.pares).length)ganados++;
+  let gen=null;if(!m.length){if(b.gen)gen=b.gen;else{const k=segTono(t);gen=(/(todos|ninguno|ningun|los mismos|las mismas|lo mismo|ni uno|ni una|de lo mismo|que se vayan)/.test(t)&&k.tono!=='P')?'A':'S'}}
+  return {a:b.a,...('g' in b?{g:b.g}:{}),t:b.t,r:b.r,min:b.min,o:b.o<9e9?b.o:idx,x:false,m,gen,rev:m.some(z=>z.nuevo)||(!m.length&&bus.compartido(b.t))}});
+ prev.multi=true;prev.nuevas=nuevas;prev.ganados=ganados;return prev}
+function candsDelGrupo(g){const mus=new Set(g.cands.map(id=>norm(cand(id).mun||'')));return [...new Set([...g.cands,...DB.cands.filter(c=>mus.has(norm(c.mun||''))).map(c=>c.id)])]}
+function usadosEn(prev,base){const s=new Set(base);prev.forEach(p=>(p.m||[]).forEach(z=>s.add(z.c)));return [...s]}
+function rehacerGrupo(g,prev,cands){const meta={...g,cands:cands||g.cands};DB.meds=DB.meds.filter(m=>m.grupo!==g.id);DB.grupos=DB.grupos.filter(x=>x.id!==g.id);guardarVarios(prev,meta)}
+
+/* ---------- Menciones de otros candidatos dentro de mediciones de un solo candidato ---------- */
+function derivarMenciones(){let nuevas=0,cands=new Set();
+ DB.meds.filter(m=>!m.grupo&&!m.deriv).forEach(m=>{const c=cand(m.cand);const pool=DB.cands.filter(o=>norm(o.mun||'')===norm(c.mun||''));if(pool.length<2)return;
+  const bus=hacerBuscador(pool);const por={};
+  m.coms.forEach(x=>{if(x.x)return;const pos=bus(x.t);pos.forEach((z,j)=>{if(z.c.id===m.cand)return;const t=norm(x.t);const s=segDe(t,pos,j);const k=segTono(s);
+   (por[z.c.id]=por[z.c.id]||[]).push({a:x.a,...('g' in x?{g:x.g}:{}),t:x.t,r:x.r,tono:k.tono,th:tema(s,k.tono,z.c),x:false,min:x.min??null,dud:z.dud})})});
+  // reemplaza las derivadas anteriores de esta medición, conservando correcciones
+  const viejas=DB.meds.filter(d=>d.deriv===m.id);
+  Object.entries(por).forEach(([cid,coms])=>{const v=viejas.find(d=>d.cand===cid);
+   if(v){coms.forEach(cm=>{const o=v.coms.find(q=>q.a===cm.a&&q.t===cm.t&&q.r===cm.r);if(o){cm.tono=o.tono;cm.th=o.th;cm.x=o.x}else nuevas++})}else nuevas+=coms.length;
+   cands.add(cid)});
+  DB.meds=DB.meds.filter(d=>d.deriv!==m.id);
+  Object.entries(por).forEach(([cid,coms])=>{const v=viejas.find(d=>d.cand===cid);DB.meds.push({id:v?v.id:uid(),cand:cid,fuente:m.fuente,fpub:m.fpub,fcap:m.fcap,desc:'Menciones en publicación sobre '+c.nombre,reac:{},deriv:m.id,coms})})});
+ return {nuevas,cands:cands.size}}
+function reprocesarTodo(){let n=0,gan=0,pubs=0;
+ [...(DB.grupos||[])].forEach(g=>{const prev=fusionar(baseGrupo(g),candsDelGrupo(g));if(prev.nuevas){rehacerGrupo(g,prev,usadosEn(prev,g.cands));n+=prev.nuevas;gan+=prev.ganados;pubs++}});
+ const dv=derivarMenciones();save();
+ const partes=[];if(n)partes.push(`${n} menciones nuevas en ${pubs} publicación(es) con varios candidatos (${gan} comentarios que antes no tenían candidato ahora sí lo tienen).`);
+ if(dv.nuevas)partes.push(`${dv.nuevas} comentarios sobre otros candidatos encontrados dentro de publicaciones de un solo candidato; ahora cuentan para ${dv.cands} candidato(s).`);
+ alert(partes.length?'Listo:\n\n'+partes.join('\n\n')+'\n\nRevisa el tono de las nuevas con "Reprocesar y revisar" o "Revisar".':'No se encontraron menciones nuevas. Todo está al día.');renderMeds()}
+function abrirEdicion(){show('nueva');$('preview').classList.remove('hide');renderPrev();
+ $('edit-banner').classList.remove('hide');$('b-save').textContent='Guardar cambios';$('preview').scrollIntoView({behavior:'smooth'})}
+function llenarForm(x){$('f-fuente').value=x.fuente;$('f-fpub').value=x.fpub||'';$('f-fcap').value=x.fcap||'';$('f-desc').value=x.desc||''}
+function reprocesarGrupo(gid){const g=DB.grupos.find(x=>x.id===gid);if(!g)return;show('nueva');$('f-modo').value='varios';$('f-modo').onchange();opts();
+ const base=baseGrupo(g);PREV=fusionar(base,candsDelGrupo(g));const usar=usadosEn(PREV,g.cands);PREV=fusionar(base,usar);
+ document.querySelectorAll('#f-cands input').forEach(x=>x.checked=usar.includes(x.value));pintarFuentes(g.fuente);llenarForm(g);EDIT={gid,base};
+ $('edit-msg').innerHTML=`Estás reprocesando una publicación guardada. <b>${PREV.nuevas}</b> menciones nuevas encontradas (marcadas en amarillo). Tus correcciones anteriores se conservan. Si agregaste apodos o candidatos, márcalos arriba y dale <b>"Volver a buscar"</b>.`;
+ $('b-rebus').classList.remove('hide');abrirEdicion()}
+function revisarMedicion(mid){const m=DB.meds.find(x=>x.id===mid);if(!m)return;show('nueva');$('f-modo').value='uno';$('f-modo').onchange();opts();$('f-cand').value=m.cand;pintarFuentes(m.fuente);llenarForm(m);
+ PREV=m.coms.map(c=>({...c,rev:false}));EDIT={mid};$('edit-msg').innerHTML='Estás revisando una medición guardada. Corrige lo que necesites y dale <b>"Guardar cambios"</b>.';$('b-rebus').classList.add('hide');abrirEdicion()}
+function cerrarEdicion(){EDIT=null;$('edit-banner').classList.add('hide');$('b-save').textContent='Guardar medición'}
+
+/* ---------- Otros nombres que la gente menciona en los comentarios ---------- */
+const STOP=new Set('que como para pero porque ese esa este esta eso esto ellos ella ellas todos todas nada nunca siempre ahora dios senor senora gracias pereira colombia risaralda dosquebradas zarzal valle cali alcaldia alcalde alcaldesa concejal concejales senado senador partido liberal conservador pacto historico centro democratico verde cambio radical gente pueblo ciudad juventud jaja jajaja jajajaja amen bendiciones feliz buenas buenos buen mejor peor otro otra otros otras cual cuando donde quien quienes solo sola mucho mucha muchos muy bien mal vamos vote voto votar votemos apoyo claro verdad mentira politica politico politicos corrupto corruptos ladron ladrones presidente sera seria fue era tiene tienen hace hizo hay han ser estar puede pueden debe deben creo pienso ojala yo nosotros usted ustedes ese esos esas aqui alla mas menos tambien tampoco entonces bueno buena malo mala nuevo nueva nuevos joven jovenes doctor doctora don dona mismo misma mismos lo los las del con sin por una uno unos unas que noo nooo jamas obvio total excelente candidato candidata candidatos alcaldia gobernacion gobernador asamblea camara representante diputado secretario administracion'.split(' '));
+function otrosNombres(textos,cs){const conocido=new Set();cs.forEach(c=>{tokNombre(c).forEach(w=>conocido.add(w));(c.alias||[]).forEach(a=>norm(a).split(/\s+/).forEach(w=>conocido.add(w)))});
+ const cnt={},ej={};
+ textos.forEach(tx=>{const vistos=new Set();const re=/([A-ZÁÉÍÓÚÑ][a-záéíóúñü]{2,}|[A-ZÁÉÍÓÚÑ]{4,})(?:\s+(?:[A-ZÁÉÍÓÚÑ][a-záéíóúñü]{2,}|[A-ZÁÉÍÓÚÑ]{4,})){0,2}/g;let m;
+  while((m=re.exec(tx))){const toks=m[0].split(/\s+/).map(w=>norm(w)).filter(w=>w.length>=4&&!STOP.has(w)&&!NOPE.test(w)&&!conocido.has(w));if(!toks.length)continue;
+   const k=toks.join(' ');const kk=toks[toks.length-1];if(vistos.has(kk))continue;vistos.add(kk);cnt[kk]=(cnt[kk]||0)+1;if(!ej[kk]||k.length>ej[kk].length)ej[kk]=k}});
+ // segunda pasada: contar cada nombre encontrado sin importar mayúsculas, minúsculas o tildes
+ const nt=textos.map(t=>' '+norm(t).replace(/[^a-z0-9ñ]+/g,' ')+' ');
+ Object.keys(cnt).forEach(k=>{cnt[k]=nt.filter(t=>t.includes(' '+k+' ')).length});
+ return Object.entries(cnt).filter(([,v])=>v>=2).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([k,v])=>({k:ej[k],n:v}))}
+let LAST=null;
+function conservar(viejo,nuevo){nuevo.forEach(p=>{const v=viejo.find(q=>q.a===p.a&&q.t===p.t&&q.r===p.r);if(v){p.x=v.x;(v.m||[]).forEach(z=>{const e=p.m.find(y=>y.c===z.c);if(e){e.tono=z.tono;e.th=z.th;e.dud=z.dud&&e.dud;delete e.nuevo}else if(!p.m.some(y=>y.c===z.c))p.m.push({...z})});if(p.m.length)p.gen=null;else if(v.gen)p.gen=v.gen;p.rev=p.m.some(z=>z.nuevo||z.dud)}});return nuevo}
+function rebuscar(){const ids=selIds();const viejo=PREV;
+ if(EDIT&&EDIT.base)PREV=fusionar(EDIT.base,ids);else if(LAST){PREV=procesarVarios(LAST.items,ids,LAST.dif);PREV.multi=true}else return;
+ PREV=Object.assign(conservar(viejo,PREV),{multi:true});renderPrev()}
+function agregarOtro(k){const ids=selIds();const ref=cand(ids[0]);const n=prompt('Nombre completo de esta persona (así quedará como candidato)',titulo(k));if(!n||!n.trim())return;
+ let c=buscarRegistrado(n,ref.mun);if(!c){c={id:uid(),nombre:n.trim(),mun:ref.mun,cargo:ref.cargo||'Alcaldía',alias:limpiarAlias(norm(k)!==norm(n)?[k]:[],n)};DB.cands.push(c);save()}
+ opts();document.querySelectorAll('#f-cands input').forEach(x=>{if(x.value===c.id||ids.includes(x.value))x.checked=true});rebuscar();
+ $('proc-msg').textContent=`Agregué a ${c.nombre} y volví a buscar en los comentarios.`}
+function pintarOtros(){const el=$('otros-n');if(!PREV||!PREV.multi){el.innerHTML='';return}
+ const L=otrosNombres(PREV.filter(p=>!p.x).map(p=>p.t),selIds().map(cand));
+ el.innerHTML=L.length?`<div class="alert w" style="color:var(--ink)"><b>Otros nombres que la gente menciona</b> y no están en tu lista de esta publicación:<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">${L.map(o=>`<span class="chip">${esc(titulo(o.k))} <b>${o.n}</b> <button class="btn sec" style="padding:2px 8px;font-size:12px" data-otro="${esc(o.k)}">Agregar como candidato</button></span>`).join('')}</div><div class="muted" style="margin-top:4px">Pueden ser aspirantes que la gente propone, o simplemente otras personas. Agrega solo los que sean posibles candidatos.</div></div>`:'';
+ el.querySelectorAll('[data-otro]').forEach(b=>b.onclick=()=>agregarOtro(b.dataset.otro))}
+function selIds(){return [...document.querySelectorAll('#f-cands input:checked')].map(x=>x.value)}
+function modoVarios(){return $('f-modo').value==='varios'}
+$('f-modo').onchange=()=>{const v=modoVarios();$('w-cands').classList.toggle('hide',!v);$('w-cand').classList.toggle('hide',v);$('preview').classList.add('hide');PREV=null;pintarFuentes()};
+function guardarVarios(prev,meta){prev=prev||PREV;const num=id=>+$(id).value||0;
+ const ids=meta?meta.cands:selIds();const gid=meta?meta.id:uid();
+ const comun=meta?{fuente:meta.fuente,fpub:meta.fpub,fcap:meta.fcap,desc:meta.desc}:{fuente:$('f-fuente').value,fpub:$('f-fpub').value,fcap:$('f-fcap').value||new Date().toISOString().slice(0,16),desc:$('f-desc').value};
+ const reac=meta?meta.reac:{};
+ prev.forEach((p,i)=>{if(p.o==null)p.o=i});
+ const vivos=prev.filter(p=>!p.x);const subs=[];
+ ids.forEach(id=>{const coms=vivos.filter(p=>p.m.some(z=>z.c===id)).map(p=>{const z=p.m.find(z=>z.c===id);return {a:p.a,...('g' in p?{g:p.g}:{}),t:p.t,r:p.r,tono:z.tono,th:z.th,x:false,min:p.min,o:p.o,multi:p.m.length>1}});
+  if(coms.length){const mid=uid();subs.push(mid);DB.meds.push({id:mid,cand:id,...comun,reac:{},grupo:gid,coms})}});
+ DB.grupos.push({id:gid,...comun,cands:ids,meds:subs,reac,
+  generales:vivos.filter(p=>!p.m.length).map(p=>({a:p.a,...('g' in p?{g:p.g}:{}),t:p.t,r:p.r,gen:p.gen,min:p.min,o:p.o})),otros:otrosNombres(vivos.map(p=>p.t),ids.map(cand)),principales:vivos.filter(p=>!p.r).length,respuestas:vivos.filter(p=>p.r).length})}
+function cuotaGrupo(g){const ms=DB.meds.filter(m=>m.grupo===g.id);const fil=g.cands.map(id=>{const m=ms.find(x=>x.cand===id);const x=m?metricas([m]):{n:0,P:0,N:0,U:0,neto:0};return {id,n:x.n,P:x.P,N:x.N,U:x.U,neto:x.neto}});
+ const tot=fil.reduce((a,b)=>a+b.n,0)||1;const gen=(g.generales||[]).filter(x=>!x.r);return {fil:fil.map(f=>({...f,cuota:Math.round(f.n*100/tot)})),S:gen.filter(x=>x.gen==='S').length,A:gen.filter(x=>x.gen==='A').length,principales:g.principales||0}}
+
+function opts(){const prev=new Set(selIds());$('f-cands').innerHTML=DB.cands.map(c=>`<label style="display:inline-flex;gap:6px;align-items:center;margin:0;color:var(--ink);font-weight:400"><input type="checkbox" value="${c.id}" style="width:auto" ${prev.has(c.id)?'checked':''}>${esc(c.nombre)} <span class="muted">(${esc(c.mun)})</span></label>`).join('');$('f-cand').innerHTML=DB.cands.map(c=>`<option value="${c.id}">${esc(c.nombre)}</option>`).join('');pintarFuentes()}
+$('b-proc').onclick=()=>{cerrarEdicion();
+ const c=cand($('f-cand').value);if(!DB.cands.length||!DB.fuentes.length){alert('Primero agrega al menos un candidato y una fuente.');return}
+ const raw=$('f-texto').value;if(!raw.trim()){alert('Pega los comentarios.');return}
+ if(!$('f-fuente').value){alert('Escoge o agrega la fuente de esta publicación.');return}
+ let items=parse(raw);if(!items.length){$('proc-msg').textContent='No encontré comentarios. Revisa que el texto tenga las líneas "Responder".';return}
+ if($('f-resp').value==='no')items=items.filter(o=>!o.reply);
+ if(modoVarios()){const ids=selIds();if(ids.length<2){const mun=fuente($('f-fuente').value).mun||munActual();const prop=proponerDesdeComentarios(items.map(o=>o.text),mun==='*'?'':mun);
+   ids.forEach(id=>{if(!prop.some(x=>x.id===id))prop.unshift({nombre:cand(id).nombre,origen:'com',n:0,id})});
+   mostrarDet(prop,mun==='*'?'':mun,'Alcaldía',prop.length?`Para procesar necesito saber qué candidatos buscar. Encontré estos nombres en los comentarios: confirma los que sean candidatos.`:'',true);
+   if(!prop.length)alert('No encontré nombres de candidatos en los comentarios. Pega el texto de la publicación arriba y dale "Detectar candidatos", o agrégalos en Candidatos y fuentes.');
+   $('w-cands').scrollIntoView({behavior:'smooth'});return}
+  const fp=$('f-fpub').value,fc=$('f-fcap').value;LAST={items,dif:(fp&&fc)?(new Date(fc)-new Date(fp))/60000:null};PREV=procesarVarios(items,ids,LAST.dif);PREV.multi=true;
+  const con=PREV.filter(p=>p.m.length).length;$('proc-msg').textContent=`Listo: ${items.length} comentarios. ${con} mencionan a algún candidato; ${items.length-con} no mencionan a ninguno. Los nombres ya se borraron.`;
+  renderPrev();$('preview').classList.remove('hide');$('preview').scrollIntoView({behavior:'smooth'});return}
+ const delMun=DB.cands.filter(o=>norm(o.mun||'')===norm(c.mun||''));const ct={terms:terms(c),id:c.id,buscar:hacerBuscador(delMun)};const otros=[];
+ const fpub=$('f-fpub').value,fcap=$('f-fcap').value;const dif=(fpub&&fcap)?(new Date(fcap)-new Date(fpub))/60000:null;
+ PREV=items.map(o=>{const k=clasificar(o.text,ct,otros);let tono=k.tono;if(k.alt&&tono==='U')tono='N';
+  return {a:hash(o.name),g:sexoDe(o.name),t:o.text,r:!!o.reply,tono,th:tema(o.text,tono,c),rev:k.rev,x:false,min:(dif!=null&&o.age!=null)?Math.max(0,Math.round(dif-o.age)):null}});
+ $('proc-msg').textContent=`Listo: ${PREV.filter(p=>!p.r).length} comentarios y ${PREV.filter(p=>p.r).length} respuestas. Los nombres ya se borraron.`;
+ renderPrev();$('preview').classList.remove('hide');$('preview').scrollIntoView({behavior:'smooth'})
+};
+function selTema(p,i){const d=p.tono==='N'?TEMAS_N:p.tono==='P'?TEMAS_P:TEMAS_U;return `<select data-i="${i}" data-k="th">${Object.entries(d).map(([k,v])=>`<option value="${k}"${p.th===k?' selected':''}>${v}</option>`).join('')}</select>`}
+function renderPrev(){if(PREV&&PREV.multi)return renderPrevVarios();$('otros-n').innerHTML='';$('prev-head').innerHTML='<th>#</th><th>Comentario</th><th>Tono</th><th>Tema</th><th>Quitar</th>';
+ const only=$('only-rev').checked;const v=PREV.filter(p=>!p.x&&!p.r);const m={P:0,N:0,U:0};v.forEach(p=>m[p.tono]++);
+ $('prev-sum').innerHTML=`${barra(m.P,m.N,m.U)}<p class="muted">Positivos ${m.P} · Negativos ${m.N} · Neutros ${m.U} · Para revisar: ${PREV.filter(p=>p.rev&&!p.x).length} · Con tiempo: ${PREV.filter(p=>p.min!=null).length}</p>`;
+ $('prev-body').innerHTML=PREV.map((p,i)=>(only&&!p.rev)?'':`<tr class="${p.rev?'rev':''} ${p.r?'rep':''}"><td>${i+1}</td><td>${p.r?'<span class="pill U">respuesta</span> ':''}${esc(p.t)}</td><td><select data-i="${i}" data-k="tono">${Object.entries(TONO).map(([k,v])=>`<option value="${k}"${p.tono===k?' selected':''}>${v}</option>`).join('')}</select></td><td>${selTema(p,i)}</td><td><input type="checkbox" data-i="${i}" data-k="x" ${p.x?'checked':''} style="width:auto"></td></tr>`).join('')
+}
+$('prev-body').addEventListener('click',e=>{if(e.target.dataset.k!=='mrm')return;const p=PREV[+e.target.dataset.i];p.m.splice(+e.target.dataset.j,1);if(!p.m.length)p.gen='S';p.rev=false;renderPrev()});
+$('prev-body').addEventListener('change',e=>{const i=+e.target.dataset.i,k=e.target.dataset.k;if(isNaN(i))return;const p=PREV[i];
+ if(PREV.multi){if(k==='x')p.x=e.target.checked;else if(k==='gen')p.gen=e.target.value;else if(k==='mt'){const z=p.m[+e.target.dataset.j];z.tono=e.target.value;z.dud=false;z.th=tema(p.t,z.tono,cand(z.c))}else if(k==='madd'&&e.target.value){const id=e.target.value;p.m.push({c:id,tono:segTono(norm(p.t)).tono,th:'X'});const z=p.m[p.m.length-1];z.th=tema(p.t,z.tono,cand(id));p.gen=null}p.rev=false;renderPrev();return}
+ if(k==='x')p.x=e.target.checked;else{p[k]=e.target.value;if(k==='tono')p.th=tema(p.t,p.tono,cand($('f-cand').value))}p.rev=false;renderPrev()});
+$('only-rev').onchange=renderPrev;
+$('b-rebus').onclick=()=>{if(selIds().length<2){alert('Marca al menos 2 candidatos.');return}rebuscar();if(EDIT)$('edit-msg').innerHTML=`Búsqueda actualizada con los candidatos marcados.`};
+$('b-cancel-ed').onclick=()=>{cerrarEdicion();PREV=null;$('preview').classList.add('hide');show('mediciones')};
+$('b-save').onclick=()=>{if(!PREV)return;
+ const num=id=>+$(id).value||0;
+ if(EDIT&&EDIT.gid){const g=DB.grupos.find(x=>x.id===EDIT.gid);const meta={...g,cands:selIds(),fuente:$('f-fuente').value,fpub:$('f-fpub').value,fcap:$('f-fcap').value||g.fcap,desc:$('f-desc').value,reac:{}};
+  DB.meds=DB.meds.filter(m=>m.grupo!==g.id);DB.grupos=DB.grupos.filter(x=>x.id!==g.id);guardarVarios(PREV,meta)}
+ else if(EDIT&&EDIT.mid){const m=DB.meds.find(x=>x.id===EDIT.mid);Object.assign(m,{cand:$('f-cand').value,fuente:$('f-fuente').value,fpub:$('f-fpub').value,fcap:$('f-fcap').value||m.fcap,desc:$('f-desc').value,
+  reac:{},coms:PREV.map(({rev,...p})=>p)})}
+ else if(PREV.multi){guardarVarios()}else DB.meds.push({id:uid(),cand:$('f-cand').value,fuente:$('f-fuente').value,fpub:$('f-fpub').value,fcap:$('f-fcap').value||new Date().toISOString().slice(0,16),desc:$('f-desc').value,
+  reac:{},coms:PREV.map(({rev,...p})=>p)});
+ save();PREV=null;$('f-texto').value='';['r-like','r-love','r-care','r-haha','r-wow','r-sad','r-angry','f-desc'].forEach(i=>$(i).value='');$('preview').classList.add('hide');$('proc-msg').textContent='';const fue=!!EDIT;cerrarEdicion();alert(fue?'Cambios guardados.':'Medición guardada.');show(fue?'mediciones':'tablero')};
+
+
+function buscarNombre(q){const qq=norm(q).trim();if(qq.length<3)return '<p class="muted">Escribe al menos 3 letras.</p>';
+ const re=new RegExp('(^|[^a-z0-9ñ])'+reEsc(qq));const vistos=new Map();
+ const add=(t,a,r,donde,asig)=>{const k=a+'|'+(r?1:0)+'|'+t;if(!vistos.has(k))vistos.set(k,{t,donde:new Set(),asig:new Set()});const v=vistos.get(k);v.donde.add(donde);asig.forEach(x=>v.asig.add(x))};
+ DB.meds.forEach(m=>m.coms.forEach(c=>{if(c.x||!re.test(norm(c.t)))return;const g=m.grupo?DB.grupos.find(x=>x.id===m.grupo):null;
+  add(c.t,c.a,c.r,(g?fuente(g.fuente).nombre+' (varios)':fuente(m.fuente).nombre)+' · '+(m.fcap||'').slice(0,10),[m.deriv||!m.grupo?'':'',corto(cand(m.cand).nombre)].filter(Boolean))}));
+ (DB.grupos||[]).forEach(g=>(g.generales||[]).forEach(c=>{if(re.test(norm(c.t)))add(c.t,c.a,c.r,fuente(g.fuente).nombre+' (varios) · '+(g.fcap||'').slice(0,10),[])}));
+ const L=[...vistos.values()];if(!L.length)return `<p class="muted">No hay comentarios guardados que digan "${esc(q)}".</p>`;
+ const sin=L.filter(v=>!v.asig.size).length;
+ return `<p><b>${L.length}</b> comentario(s) guardados dicen "${esc(q)}".${sin?` <span style="color:var(--warn)"><b>${sin}</b> no están asignados a ningún candidato</span>: registra a esa persona (o agrégale el apodo) y dale "Buscar nuevas coincidencias".`:''}</p>
+ <div class="tbl" style="max-height:320px;overflow:auto"><table><thead><tr><th>Comentario</th><th>Dónde</th><th>Cuenta para</th></tr></thead><tbody>${L.slice(0,200).map(v=>`<tr><td>${esc(v.t)}</td><td class="muted">${[...v.donde].map(esc).join('<br>')}</td><td>${v.asig.size?[...v.asig].map(esc).join(', '):'<span class="pill U">Ningún candidato</span>'}</td></tr>`).join('')}</tbody></table></div>`}
+
+function completarSexo(sel,raw){const it=parse(raw);if(!it.length)return 'No encontré comentarios en el texto pegado.';
+ const mapa=new Map();it.forEach(o=>{const k=(o.reply?1:0)+'|'+norm(o.text);if(!mapa.has(k))mapa.set(k,sexoDe(o.name))});
+ let ok=0,tot=0;const aplicar=c=>{tot++;const k=(c.r?1:0)+'|'+norm(c.t);if(mapa.has(k)){c.g=mapa.get(k);ok++}};
+ if(sel.startsWith('g:')){const g=DB.grupos.find(x=>x.id===sel.slice(2));DB.meds.filter(m=>m.grupo===g.id||(m.deriv&&false)).forEach(m=>m.coms.forEach(aplicar));(g.generales||[]).forEach(aplicar)}
+ else{const m=DB.meds.find(x=>x.id===sel.slice(2));m.coms.forEach(aplicar);DB.meds.filter(d=>d.deriv===m.id).forEach(d=>d.coms.forEach(aplicar))}
+ save();return `Listo: completé ${ok} de ${tot} comentarios guardados. Los nombres no se guardaron.${ok<tot?' Los que faltan no coincidieron con el texto pegado (puede ser otra copia de la publicación).':''}`}
+/* ---------- Mediciones ---------- */
+function renderMeds(){
+ const el=$('t-mediciones');if(!DB.meds.length&&!(DB.grupos||[]).length){el.innerHTML='<div class="card">No hay mediciones todavía.</div>';return}
+ const top=`<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><b>Buscar nuevas coincidencias en todas las mediciones</b><div class="muted">Úsalo después de agregar un candidato, apodos o actualizar la app. Revisa también los comentarios sobre otros candidatos dentro de publicaciones de un solo candidato. Conserva tus correcciones.</div></div><button class="btn" id="b-rp-all">Buscar nuevas coincidencias</button></div>
+ <div class="card"><b>Completar hombres y mujeres en mediciones guardadas</b><div class="muted">Las mediciones guardadas antes de esta función no tienen el dato. Escoge la medición, pega otra vez los mismos comentarios de Facebook y la app lo completa. Los nombres se usan solo en ese momento y no se guardan.</div>
+ <div class="row" style="margin-top:8px"><div><select id="cs-sel">${[...(DB.grupos||[]).map(g=>`<option value="g:${g.id}">${esc(fuente(g.fuente).nombre)} · ${esc((g.fcap||'').slice(0,10))} · varios candidatos</option>`),...DB.meds.filter(m=>!m.grupo&&!m.deriv).map(m=>`<option value="m:${m.id}">${esc(cand(m.cand).nombre)} · ${esc(fuente(m.fuente).nombre)} · ${esc((m.fcap||'').slice(0,10))}</option>`)].join('')}</select></div></div>
+ <textarea id="cs-txt" style="min-height:90px;margin-top:8px" placeholder="Pega aquí los mismos comentarios que usaste en esa medición"></textarea>
+ <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn sec" id="b-cs">Completar</button><span class="muted" id="cs-msg"></span></div></div>
+ <div class="card"><b>¿Dónde aparece un nombre?</b><div class="muted">Busca una palabra en todos los comentarios guardados y mira a qué candidato le quedó asignado cada uno.</div>
+ <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><input id="bq" placeholder="Ej: Trejos" style="max-width:280px"><button class="btn sec" id="b-bq">Buscar</button></div><div id="bq-res" style="margin-top:8px"></div></div>`;
+ const gh=(DB.grupos||[]).length?`<div class="card"><h2>Publicaciones con varios candidatos</h2><div class="tbl"><table><thead><tr><th>Fecha captura</th><th>Fuente</th><th>Comentarios</th><th>Cuota de conversación</th><th>Sin candidato / Rechazo a todos</th><th></th></tr></thead><tbody>${[...DB.grupos].sort((a,b)=>b.fcap.localeCompare(a.fcap)).map(g=>{const q=cuotaGrupo(g);const rr=reacciones([g]);
+  return `<tr><td>${esc(g.fcap.replace('T',' '))}</td><td>${esc(fuente(g.fuente).nombre)}${g.desc?`<div class="muted">${esc(g.desc)}</div>`:''}</td><td>${g.principales} <span class="muted">+${g.respuestas||0} resp.</span></td><td>${q.fil.sort((a,b)=>b.cuota-a.cuota).map(f=>`${esc(corto(cand(f.id).nombre))}: <b>${f.cuota}%</b> <span style="color:${f.neto>=0?'var(--pos)':'var(--neg)'}">(${f.neto>0?'+':''}${f.neto})</span>`).join('<br>')}</td><td>${q.S} / ${q.A}</td><td style="white-space:nowrap"><button class="btn del" style="color:var(--acc)" data-rpg="${g.id}">Reprocesar y revisar</button><br><button class="btn del" data-delg="${g.id}">Borrar</button></td></tr>`}).join('')}</tbody></table></div><p class="muted">Entre paréntesis: índice neto de cada candidato dentro de esa publicación.</p></div>`:'';
+ el.innerHTML=top+gh+`<div class="card"><h2>Mediciones guardadas</h2><div class="tbl"><table><thead><tr><th${T('Fecha y hora en que copiaste los comentarios de Facebook.')}>Fecha captura</th><th>Candidato</th><th${T('Página o grupo de Facebook de donde salió la publicación, y su tipo.')}>Fuente</th><th${T('Comentarios principales sobre el candidato en esta medición, y respuestas aparte.')}>Comentarios</th><th${T('% positivos − % negativos en esta medición, sin ajuste por fuente.')}>Índice neto</th><th></th></tr></thead><tbody>${[...DB.meds].sort((a,b)=>b.fcap.localeCompare(a.fcap)).map(m=>{const x=metricas([m]);const r=m.reac||{};const rr=reacciones([m]),rt=rr.total;
+ return `<tr><td>${esc(m.fcap.replace('T',' '))}</td><td>${esc(cand(m.cand).nombre)}${m.grupo?'<div><span class="pill U">publicación compartida</span></div>':''}${m.deriv?`<div><span class="pill U">mencionado en publicación de ${esc(corto(cand((DB.meds.find(x=>x.id===m.deriv)||{}).cand).nombre))}</span></div>`:''}</td><td>${esc(fuente(m.fuente).nombre)}<div class="muted">${TIPO[fuente(m.fuente).tipo]}</div>${m.desc?`<div class="muted">${esc(m.desc)}</div>`:''}</td><td>${x.n} <span class="muted">+${x.rep} resp.</span></td><td style="font-weight:700;color:${x.neto>=0?'var(--pos)':'var(--neg)'}">${x.neto>0?'+':''}${x.neto}</td><td style="white-space:nowrap">${m.grupo?'':`<button class="btn del" style="color:var(--acc)" data-rvm="${m.id}">Revisar</button><br><button class="btn del" data-del="${m.id}">Borrar</button>`}</td></tr>`}).join('')}</tbody></table></div></div>`;
+ el.querySelectorAll('[data-rpg]').forEach(b=>b.onclick=()=>reprocesarGrupo(b.dataset.rpg));
+ el.querySelectorAll('[data-rvm]').forEach(b=>b.onclick=()=>revisarMedicion(b.dataset.rvm));
+ if($('b-rp-all'))$('b-rp-all').onclick=reprocesarTodo;
+ $('b-cs').onclick=()=>{const s=$('cs-sel').value,t=$('cs-txt').value;if(!s||!t.trim()){alert('Escoge la medición y pega los comentarios.');return}$('cs-msg').textContent=completarSexo(s,t);$('cs-txt').value=''};
+ $('b-bq').onclick=()=>{$('bq-res').innerHTML=buscarNombre($('bq').value)};$('bq').onkeydown=e=>{if(e.key==='Enter')$('b-bq').click()};
+ el.querySelectorAll('[data-delg]').forEach(b=>b.onclick=()=>{if(confirm('¿Borrar esta publicación y las mediciones de todos sus candidatos?')){DB.meds=DB.meds.filter(m=>m.grupo!==b.dataset.delg);DB.grupos=DB.grupos.filter(g=>g.id!==b.dataset.delg);save();renderMeds()}});
+ el.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{if(confirm('¿Borrar esta medición?')){DB.meds=DB.meds.filter(m=>m.id!==b.dataset.del&&m.deriv!==b.dataset.del);save();renderMeds()}})
+}
+
+/* ---------- Config ---------- */
+function renderConfig(){
+ $('cand-list').innerHTML=DB.cands.map(c=>`<tr><td><b>${esc(c.nombre)}</b><div class="muted">${esc(c.cargo)} · ${esc(c.mun)}${c.alias?.length?' · también: '+esc(c.alias.join(', ')):''}</div></td><td style="text-align:right;white-space:nowrap">${(()=>{const d=DB.cands.find(o=>o.id!==c.id&&norm(o.mun||'')===norm(c.mun||'')&&mismaPersona(o.nombre,c.nombre));return d?`<button class="btn del" style="color:var(--warn)" data-un="${c.id}|${d.id}" title="Parece la misma persona que ${esc(d.nombre)}">Unir con ${esc(corto(d.nombre))}</button>`:''})()}<button class="btn del" style="color:var(--acc)" data-ec="${c.id}">Editar</button><button class="btn del" style="color:var(--acc)" data-ac="${c.id}">Editar apodos</button><button class="btn del" data-dc="${c.id}">Quitar</button></td></tr>`).join('');
+ document.querySelectorAll('[data-un]').forEach(b=>b.onclick=()=>{const [a,z]=b.dataset.un.split('|');const A=cand(a),Z=cand(z);
+  const keep=tokSet(A.nombre).length>=tokSet(Z.nombre).length?A:Z,drop=keep===A?Z:A;
+  if(!confirm(`¿Unir "${drop.nombre}" dentro de "${keep.nombre}"? Sus mediciones y apodos pasan a "${keep.nombre}".`))return;
+  DB.meds.forEach(m=>{if(m.cand===drop.id)m.cand=keep.id});
+  (DB.grupos||[]).forEach(g=>{if(g.cands.includes(drop.id)){g.cands=[...new Set(g.cands.map(x=>x===drop.id?keep.id:x))];
+   const subs=DB.meds.filter(m=>m.grupo===g.id&&m.cand===keep.id);if(subs.length>1){const base=subs[0];subs.slice(1).forEach(s=>{s.coms.forEach(c=>{if(!base.coms.some(x=>x.a===c.a&&x.t===c.t&&x.r===c.r))base.coms.push(c)})});DB.meds=DB.meds.filter(m=>!subs.slice(1).includes(m))}}});
+  keep.alias=limpiarAlias([...(keep.alias||[]),...(drop.alias||[]),drop.nombre],keep.nombre);DB.cands=DB.cands.filter(c=>c.id!==drop.id);save();renderConfig();alert('Listo, quedaron unidos.')});
+ document.querySelectorAll('[data-ec]').forEach(b=>b.onclick=()=>{const c=cand(b.dataset.ec);
+  const n=prompt('Nombre completo del candidato',c.nombre);if(n===null)return;const nn=n.trim();if(!nn){alert('El nombre no puede quedar vacío.');return}
+  if(DB.cands.some(x=>x.id!==c.id&&norm(x.nombre)===norm(nn)&&norm(x.mun||'')===norm(c.mun||''))){alert('Ya existe un candidato con ese nombre en '+(c.mun||'ese municipio')+'.');return}
+  const mu=prompt('Municipio',c.mun||'');if(mu===null)return;
+  const ca=prompt('Cargo (Alcaldía, Concejo, Gobernación o Asamblea)',c.cargo||'Alcaldía');if(ca===null)return;
+  const viejo=norm(c.nombre);c.nombre=nn;c.mun=mu.trim();const cc=['Alcaldía','Concejo','Gobernación','Asamblea'].find(x=>norm(x)===norm(ca.trim()));if(cc)c.cargo=cc;
+  if(viejo!==norm(nn)&&!(c.alias||[]).map(norm).includes(viejo)&&confirm('¿Guardar el nombre anterior como apodo? Así la app lo sigue reconociendo en los comentarios.'))c.alias=[...(c.alias||[]),viejo];
+  save();renderConfig()});
+ document.querySelectorAll('[data-ac]').forEach(b=>b.onclick=()=>{const c=cand(b.dataset.ac);const v=prompt('Apodos o formas de nombrarlo, separados por coma (ej: Gallo, JP Gallo, el exalcalde)',(c.alias||[]).join(', '));if(v===null)return;c.alias=limpiarAlias(v.split(','),c.nombre);save();renderConfig()});
+ $('fuente-list').innerHTML=DB.fuentes.map(f=>`<tr><td><b>${esc(f.nombre)}</b><div class="muted">${f.mun?esc(f.mun)+' · ':''}${TIPO[f.tipo]} · peso ${PESO[f.tipo]}</div></td><td style="text-align:right;white-space:nowrap"><button class="btn del" style="color:var(--acc)" data-rf="${f.id}">Renombrar</button><button class="btn del" data-df="${f.id}">Quitar</button></td></tr>`).join('');
+ document.querySelectorAll('[data-dc]').forEach(b=>b.onclick=()=>{if(DB.meds.some(m=>m.cand===b.dataset.dc)){alert('Este candidato tiene mediciones. Bórralas primero.');return}DB.cands=DB.cands.filter(c=>c.id!==b.dataset.dc);save();renderConfig()});
+ document.querySelectorAll('[data-rf]').forEach(b=>b.onclick=()=>{const f=fuente(b.dataset.rf);const n=prompt('Nuevo nombre de la fuente',f.nombre);if(!n)return;const t=prompt('Tipo: grupo, medio o candidato',f.tipo);const mu=prompt('Municipio de la fuente',f.mun||'');if(mu!==null)f.mun=mu.trim();f.nombre=n.trim();if(['grupo','medio','candidato'].includes((t||'').trim()))f.tipo=t.trim();save();renderConfig()});
+ document.querySelectorAll('[data-df]').forEach(b=>b.onclick=()=>{if(DB.meds.some(m=>m.fuente===b.dataset.df)){alert('Esta fuente tiene mediciones. Bórralas primero.');return}DB.fuentes=DB.fuentes.filter(f=>f.id!==b.dataset.df);save();renderConfig()})
+}
+$('b-cand').onclick=()=>{const n=$('c-nom').value.trim();if(!n)return;DB.cands.push({id:uid(),nombre:n,mun:$('c-mun').value.trim(),cargo:$('c-car').value,alias:limpiarAlias($('c-alias').value.split(','),n)});$('c-nom').value='';$('c-alias').value='';save();renderConfig()};
+$('b-fuente').onclick=()=>{const n=$('s-nom').value.trim();if(!n)return;DB.fuentes.push({id:uid(),nombre:n,tipo:$('s-tipo').value,mun:$('s-mun').value.trim()});$('s-nom').value='';save();renderConfig()};
+function bajar(nombre,contenido,tipo){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([contenido],{type:tipo}));a.download=nombre;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+$('b-reset').onclick=()=>{const n=DB.meds.filter(m=>!m.deriv).length;if(!n&&!(DB.grupos||[]).length){alert('No hay mediciones guardadas.');return}
+ if(!confirm(`Se van a borrar ${n} medición(es) y ${(DB.grupos||[]).length} publicación(es) con varios candidatos.\n\nLos candidatos, apodos y fuentes se conservan.\n\n¿Ya descargaste el respaldo?`))return;
+ if(!confirm('¿Seguro? Esto no se puede deshacer (salvo cargando el respaldo).'))return;DB.meds=[];DB.grupos=[];save();renderConfig();alert('Listo. Ya puedes cargar las mediciones de nuevo.')};
+$('b-exp').onclick=()=>bajar('radar_opinion_respaldo_'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify(DB),'application/json');
+$('b-csv').onclick=()=>{const q=s=>'"'+String(s??'').replace(/"/g,'""')+'"';const rows=[['fecha_captura','candidato','fuente','tipo_fuente','cuenta','sexo_estimado','es_respuesta','tono','tema','minutos','comentario']];
+ DB.meds.forEach(m=>m.coms.filter(c=>!c.x).forEach(c=>rows.push([m.fcap,cand(m.cand).nombre,fuente(m.fuente).nombre,fuente(m.fuente).tipo,c.a,{H:'Hombre',M:'Mujer','?':'Sin identificar'}[c.g]||'',c.r?'si':'no',TONO[c.tono],(c.tono==='N'?TEMAS_N:c.tono==='P'?TEMAS_P:TEMAS_U)[c.th]||'',c.min??'',c.t])));
+ bajar('radar_opinion_comentarios.csv','﻿'+rows.map(r=>r.map(q).join(';')).join('\n'),'text/csv')};
+$('b-imp').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.cands||!d.meds)throw 0;d.grupos=d.grupos||[];if(confirm('Esto reemplaza los datos actuales. ¿Continuar?')){DB=d;save();show('tablero')}}catch(x){alert('El archivo no es un respaldo válido.')}};r.readAsText(f)};
+
+/* ---------- Navegación ---------- */
+function show(t){document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+ ['tablero','analisis','nueva','mediciones','config','ayuda'].forEach(x=>$('t-'+x).classList.toggle('hide',x!==t));
+ if(t==='tablero')renderTablero();if(t==='analisis')renderAnalisis();if(t==='nueva'){opts();if(!$('f-fcap').value){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());$('f-fcap').value=d.toISOString().slice(0,16)}}if(t==='mediciones')renderMeds();if(t==='config')renderConfig()}
+$('nav').onclick=e=>{if(e.target.dataset.t)show(e.target.dataset.t)};
+load();asegurarPereira();save();show('tablero');
+</script>
+</body>
+</html>
