@@ -57,6 +57,7 @@ nav.tabs{display:flex;gap:4px;margin-left:auto;overflow-x:auto;max-width:100%}
 nav.tabs a{padding:10px 14px 12px;text-decoration:none;color:var(--muted);font-weight:600;font-stretch:90%;border-bottom:3px solid transparent;white-space:nowrap}
 nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
 nav.tabs a:hover{color:var(--ink)}
+@media (max-width:760px){nav.tabs{flex-wrap:wrap;overflow-x:visible;margin-left:0;width:100%}nav.tabs a{padding:8px 10px 9px;font-size:.92rem}}
 .status{width:100%;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.78rem;color:var(--muted);padding-bottom:8px}
 .status b{color:var(--ink);font-weight:600}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:6px;vertical-align:1px}
@@ -374,6 +375,7 @@ td.wrap{white-space:normal;min-width:13rem;text-align:left;font-size:.78rem;colo
         <label class="field" style="min-width:150px"><span>Periodo</span><select id="o-per"><option value="14">Últimos 14 días</option><option value="30">Últimos 30 días</option><option value="90">Últimos 90 días</option><option value="todo">Todo</option></select></label>
       </div>
     </div>
+    <div id="o-acc" class="sheet pad row" style="gap:8px;border-left:4px solid var(--accent)"></div>
     <div id="o-out" style="display:flex;flex-direction:column;gap:16px"></div>
     <div id="o-form"></div>
   </section>
@@ -461,6 +463,7 @@ td.wrap{white-space:normal;min-width:13rem;text-align:left;font-size:.78rem;colo
 
 <script>
 const ESTATICO=!!window.RADAR_ESTATICO;
+const APP_URL="https://claude.ai/artifact/XY2g9xW5fuXgyRATZqTKq6";
 /* ---------- Datos fijos ---------- */
 const DEPTOS = {
   "Valle del Cauca":["Cali","Alcalá","Andalucía","Ansermanuevo","Argelia","Bolívar","Buenaventura","Buga","Bugalagrande","Caicedonia","Calima (El Darién)","Candelaria","Cartago","Dagua","El Águila","El Cairo","El Cerrito","El Dovio","Florida","Ginebra","Guacarí","Jamundí","La Cumbre","La Unión","La Victoria","Obando","Palmira","Pradera","Restrepo","Riofrío","Roldanillo","San Pedro","Sevilla","Toro","Trujillo","Tuluá","Ulloa","Versalles","Vijes","Yotoco","Yumbo","Zarzal"],
@@ -1665,7 +1668,7 @@ document.addEventListener("input",e=>{ if(e.target.id==="h-q"){ hv.q=e.target.va
 /* ---------- Termómetro digital ---------- */
 async function loadTermoEstatico(){
   try{ const d=await (await fetch("termometro.json")).json(); segs=d.seguimiento||[]; meds=d.mediciones||[]; anas=d.analisis||[]; opis=d.opinion||[]; tState="ok";
-    if(d.actualizado) $("#st-store").innerHTML=`<span class="dot ok"></span>Versión de consulta · mediciones al ${esc(d.actualizado)}`; }
+    if(d.actualizado) $("#st-store").innerHTML=`<span class="dot ok"></span>Versión de consulta (solo lectura) · mediciones al ${esc(d.actualizado)} · <a href="${APP_URL}" target="_blank" rel="noopener">Abrir la app para cargar datos</a>`; }
   catch(e){ tState="error"; }
   renderAll();
 }
@@ -1930,6 +1933,8 @@ const tonoBar=t=>{ const tot=t.favor+t.contra+t.neutro||1, p=k=>t[k]/tot*100;
 const sh=(t,body,nota)=>`<div class="sheet pad" style="display:flex;flex-direction:column;gap:10px">${t}${nota?`<p class="small muted" style="margin:0;max-width:85ch">${nota}</p>`:""}${body}</div>`;
 function renderOpinion(){
   const out=$("#o-out"), sel=$("#o-cont");
+  $("#o-acc").innerHTML=ESTATICO?`<span class="small"><b>Esta es la versión de consulta (solo lectura).</b> Para pegar comentarios, importar el radar de opinión o agregar aspirantes, abre la app en claude.ai:</span> <a class="btn sm primary" href="${APP_URL}" target="_blank" rel="noopener">Abrir la app para cargar datos</a>`
+    :`<span class="label" style="margin-right:4px">Cargar datos</span><button class="btn sm primary" type="button" data-oacc="of-d">Pegar comentarios de una publicación</button><button class="btn sm" type="button" data-oacc="oi-d">Importar el radar de opinión (.json)</button><button class="btn sm" type="button" data-oacc="oa-d">Agregar un aspirante</button>`;
   $("#o-per").value=oPer;
   if(tState==="sin-db"){ sel.innerHTML=""; out.innerHTML=`<div class="sheet empty"><h3>La opinión necesita el almacenamiento de la app</h3><p>Recarga la página.</p></div>`; return; }
   if(tState!=="ok"){ out.innerHTML=`<div class="sheet empty"><h3>Cargando análisis…</h3></div>`; return; }
@@ -1999,13 +2004,13 @@ function oFormHTML(S){
     </div></details>`;
 }
 function oImportHTML(){
-  return `<details class="sheet pad"><summary style="cursor:pointer;font-weight:600">Importar el respaldo del radar de opinión</summary>
+  return `<details class="sheet pad" id="oi-d"><summary style="cursor:pointer;font-weight:600">Importar el respaldo del radar de opinión</summary>
     <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px"><p class="small muted" style="margin:0;max-width:80ch">En el radar de opinión, ve a «Candidatos y fuentes» → «Descargar respaldo (.json)» y carga aquí ese archivo. Cada publicación pasa a su contienda (Pereira y Zarzal por separado) y cada candidato se une con el aspirante del mismo nombre. Puedes importarlo de nuevo cuando quieras: las publicaciones ya importadas se actualizan, no se duplican.</p>
     <label class="btn" style="align-self:flex-start">Escoger archivo .json<input type="file" id="oi-file" accept=".json,application/json" hidden></label>
     <div id="oi-out" class="small" style="display:flex;flex-direction:column;gap:8px"></div></div></details>`;
 }
 function oAspHTML(){
-  return `<details class="sheet pad"><summary style="cursor:pointer;font-weight:600">Agregar un aspirante a esta contienda</summary>
+  return `<details class="sheet pad" id="oa-d"><summary style="cursor:pointer;font-weight:600">Agregar un aspirante a esta contienda</summary>
     <form id="oa-form" style="display:flex;flex-direction:column;gap:10px;margin-top:12px"><p class="small muted" style="margin:0">Queda en el termómetro, en la opinión y en la revisión automática.</p>
     <div class="grid-f"><label class="field" style="grid-column:1/-1"><span>Nombre completo</span><input type="text" id="oa-nom" required></label><label class="field"><span>Partido</span><input type="text" id="oa-par"></label><label class="field" style="grid-column:1/-1"><span>Apodos o formas de nombrarlo (separados por coma)</span><input type="text" id="oa-ali" placeholder="Ej. Steven, el exconcejal"></label></div>
     <div><button class="btn primary" type="submit">Agregar aspirante</button></div></form></details>`;
@@ -2129,6 +2134,7 @@ document.addEventListener("change",e=>{
   else if(t.id==="o-cand"){ oCand=t.value; renderOpinion(); }
   else if(t.id==="oi-file"&&t.files&&t.files[0]){ oImportLeer(t.files[0]); t.value=""; }
 });
+document.addEventListener("click",e=>{ const t=e.target.closest&&e.target.closest("[data-oacc]"); if(!t) return; const d=document.getElementById(t.dataset.oacc); if(!d){ toast("Espera a que carguen los aspirantes."); return; } d.open=true; d.scrollIntoView({behavior:"smooth",block:"start"}); });
 document.addEventListener("submit",async e=>{
   if(e.target.id!=="oa-form") return; e.preventDefault();
   const nombre=$("#oa-nom").value.trim(); if(!nombre) return;
