@@ -253,6 +253,7 @@ td.wrap{white-space:normal;min-width:13rem;text-align:left;font-size:.78rem;colo
       <a href="#panorama" data-v="panorama">Panorama</a>
       <a href="#candidatos" data-v="candidatos">Precandidatos</a>
       <a href="#comparar" data-v="comparar">Comparar</a>
+      <a href="#consolidado" data-v="consolidado">Consolidado</a>
       <a href="#termometro" data-v="termometro">Termómetro</a>
       <a href="#opinion" data-v="opinion">Opinión</a>
       <a href="#radar" data-v="radar">Radar de opinión</a>
@@ -336,6 +337,16 @@ td.wrap{white-space:normal;min-width:13rem;text-align:left;font-size:.78rem;colo
       </details>
     </div>
     <div id="cmp-out" style="display:flex;flex-direction:column;gap:16px"></div>
+  </section>
+
+  <!-- CONSOLIDADO -->
+  <section class="view" id="v-consolidado" hidden>
+    <div class="view-head">
+      <div><h2>Consolidado por municipio</h2><p>Un solo panorama de cada contienda: une el termómetro digital, la opinión en los comentarios, el radar de opinión, el histórico electoral y los apoyos, con la explicación de cada gráfica.</p></div>
+      <div class="row" style="gap:8px;align-items:flex-end"><label class="field" style="min-width:240px"><span>Contienda</span><select id="c-cont"></select></label><button class="btn primary" id="c-pdf" type="button">Informe consolidado (PDF)</button></div>
+    </div>
+    <p class="small muted" id="c-st" style="margin:0" aria-live="polite"></p>
+    <div id="c-out" style="display:flex;flex-direction:column;gap:16px"></div>
   </section>
 
   <!-- TERMÓMETRO -->
@@ -1680,7 +1691,7 @@ function initTermo(){
   tUnsub.push(db.collection("mediciones").onSnapshot(s=>{ meds=s.docs.map(d=>({id:d.id,...clone(d.data())})); tRe(); },()=>{}));
   tUnsub.push(db.collection("opinion").onSnapshot(s=>{ opisNube=s.docs.map(d=>({id:d.id,...clone(d.data())})); opisMerge(); tRe(); },()=>{}));
 }
-function tRe(){ const v=vista(); if(v==="termometro") renderTermo(); else if(v==="opinion") renderOpinion(); }
+function tRe(){ const v=vista(); if(v==="termometro") renderTermo(); else if(v==="opinion") renderOpinion(); else if(v==="consolidado") renderConsolidado(); }
 const tKey=s=>[s.cargo,s.depto,s.municipio||""].join("|");
 const nz0=v=>+v||0;
 function tMetr(m){
@@ -2131,7 +2142,7 @@ document.addEventListener("click",async e=>{
 });
 document.addEventListener("change",e=>{
   const t=e.target;
-  if(t.id==="o-cont"){ oCont=t.value; oCand=""; oPrev=null; renderOpinion(); }
+  if(t.id==="o-cont"){ oCont=tCont=cCont=t.value; oCand=""; oPrev=null; renderOpinion(); }
   else if(t.id==="o-per"){ oPer=t.value; renderOpinion(); }
   else if(t.id==="o-cand"){ oCand=t.value; renderOpinion(); }
   else if(t.id==="oi-file"&&t.files&&t.files[0]){ oImportLeer(t.files[0]); t.value=""; }
@@ -2491,7 +2502,7 @@ document.addEventListener("click",async e=>{
   else if(t.dataset.apodel){ const [id,k]=t.dataset.apodel.split("|"), s=segs.find(x=>x.id===id); const ap=(s.apoyos||[]).filter((_,i)=>i!==+k);
     try{ await db.collection("seguimiento").doc(id).update({apoyos:ap}); toast("Apoyo quitado"); }catch(err){ toast("No se pudo quitar el apoyo."); } }
 });
-document.addEventListener("change",e=>{ if(e.target.id==="t-cont"){ tCont=e.target.value; renderTermo(); } });
+document.addEventListener("change",e=>{ if(e.target.id==="t-cont"){ tCont=oCont=cCont=e.target.value; renderTermo(); } });
 document.addEventListener("click",e=>{ const t=e.target.closest("button"); if(t&&t.dataset.tver){ if(!nameIdx) buildNameIdx(); hSel=+t.dataset.tver; hfe=null; hv.modo="candidatos"; location.hash="#historico"; } });
 document.addEventListener("submit",async e=>{
   if(e.target.id!=="tform") return; e.preventDefault();
@@ -2533,12 +2544,129 @@ document.addEventListener("click",async e=>{ const t=e.target.closest&&e.target.
   const L=opis.filter(o=>o._local); let n=0;
   try{ for(const o of L){ const {id,_local,_coms,...doc}=o; await oGuardar(id,{...doc,origen:"Radar de opinión"},_coms); n++; $("#r-st").textContent=`Guardando ${n} de ${L.length}…`; } toast("Guardado en tu cuenta"); }
   catch(err){ t.disabled=false; $("#r-st").textContent=`Se guardaron ${n}. Solo el dueño de la app puede guardar.`; } });
+/* ---------- Consolidado por municipio: un solo panorama ---------- */
+let cCont="";
+const CCOMP=[{k:"base",n:"Base y estructura",w:30,c:"var(--c-base)",d:"Mejor votación propia más los votos de sus apoyos, frente al mejor de la contienda."},
+  {k:"opin",n:"Opinión neta",w:25,c:"var(--ok)",d:"Índice neto de los comentarios (de −100 a +100) llevado a una escala de 0 a 1. Exige al menos 10 comentarios."},
+  {k:"dig",n:"Presencia digital",w:20,c:"var(--c-digital)",d:"Puntaje del termómetro frente al mejor de la contienda."},
+  {k:"conv",n:"Peso en la conversación",w:15,c:"var(--c-medios)",d:"Comentarios que hablan de él o ella frente al más comentado: aproxima qué tan conocido es."},
+  {k:"rech",n:"Bajo rechazo",w:10,c:"var(--c-musculo)",d:"1 menos la proporción de comentarios en contra. Exige al menos 10 comentarios."}];
+function consolidar(key){
+  const S=segs.filter(s=>tKey(s)===key), D=S.map(s=>datosAsp(key,s));
+  const mx=f=>Math.max(0,...D.map(f));
+  const mB=mx(d=>d.propio+d.vAp), mT=mx(d=>d.u?d.u.total:0), mC=mx(d=>d.a.tot);
+  D.forEach(d=>{ const ok=d.a.tot>=10;
+    d.cc={base:mB?(d.propio+d.vAp)/mB:null,dig:d.u&&mT?d.u.total/mT:null,opin:ok?(d.neto+100)/200:null,conv:mC?d.a.tot/mC:null,rech:ok?1-d.rech:null};
+    d.cob=CCOMP.filter(c=>d.cc[c.k]!=null).length;
+    d.cp={}; d.ci=0; CCOMP.forEach(c=>{ d.cp[c.k]=(d.cc[c.k]||0)*c.w; d.ci+=d.cp[c.k]; }); });
+  return D.sort((a,b)=>b.ci-a.ci);
+}
+function coherencia(D){
+  const out=[], con=D.filter(d=>d.a.tot>=10), dig=D.filter(d=>d.u);
+  const top=(arr,f)=>arr.slice().sort((a,b)=>f(b)-f(a))[0];
+  const lT=top(dig,d=>d.u.total), lO=top(con,d=>d.neto), lB=top(D,d=>d.propio+d.vAp), lC=top(D,d=>d.a.tot);
+  if(lT&&lO) out.push(lT===lO?{t:"ok",x:`${lT.s.nombre} lidera a la vez la presencia digital (${fmt(lT.u.total,0)}) y la opinión neta (${netoTxt(lT.neto)}): las dos lecturas coinciden.`}
+    :{t:"warn",x:`Las lecturas no coinciden: ${lT.s.nombre} lidera la presencia digital (${fmt(lT.u.total,0)}), pero la mejor opinión neta es de ${lO.s.nombre} (${netoTxt(lO.neto)}). Ser visible no es lo mismo que ser bien valorado.`});
+  if(lB&&lT&&lB!==lT&&(lB.propio+lB.vAp)>0) out.push({t:"warn",x:`${lB.s.nombre} tiene la mayor base electoral y de apoyos (${fmt(lB.propio+lB.vAp)} votos de referencia), pero no lidera en redes. Su fuerza está en la estructura territorial, no en la conversación digital.`});
+  D.forEach(d=>{ const n=d.s.nombre;
+    if(d.u&&d.u.total>=50&&d.a.tot>=10&&d.neto<0) out.push({t:"bad",x:`${n}: mucha presencia digital (${fmt(d.u.total,0)}) con opinión negativa (${netoTxt(d.neto)}). La exposición le está costando: revisar mensajes y temas que le restan (${(d.con[0]||{}).tema||"—"}).`});
+    if(d.u&&d.u.total<35&&d.a.tot>=10&&d.neto>=20) out.push({t:"ok",x:`${n}: poca presencia digital (${fmt(d.u.total,0)}) pero buena opinión (${netoTxt(d.neto)}). Tiene margen para crecer si invierte en redes.`});
+    if(d.rech!=null&&d.a.tot>=10&&d.rech>=0.4) out.push({t:"bad",x:`${n}: el ${pct(d.rech,0)} de los comentarios están en contra. Un rechazo así es un techo difícil de romper.`});
+    if(d.nM>=10&&d.nH>=10&&Math.abs(d.m-d.hh)>=30) out.push({t:"warn",x:`${n}: brecha de ${Math.abs(d.m-d.hh)} puntos entre mujeres (${netoTxt(d.m)}) y hombres (${netoTxt(d.hh)}). Es más fuerte entre ${d.m>d.hh?"las mujeres":"los hombres"} (aproximado por el nombre).`});
+    if(d.propio>0&&d.gan&&d.propio>=d.gan.v*0.6&&!d.u) out.push({t:"warn",x:`${n} tiene una votación probada alta (${fmt(d.propio)}) y todavía no tiene medición de redes: falta información para compararlo.`});
+    d.ap.filter(x=>/no confirmad|sin confirmar|según/i.test(x.a.nota||"")).forEach(x=>out.push({t:"warn",x:`${n}: el apoyo de ${x.a.nombre}${x.v?` (${fmt(x.v)} votos)`:""} no está confirmado oficialmente; su base de referencia puede estar sobreestimada.`}));
+    if(d.cob<=2) out.push({t:"na",x:`${n}: solo ${d.cob} de 5 componentes tienen datos. Su posición en el consolidado es provisional.`}); });
+  if(lC&&lO&&lC!==lO) out.push({t:"warn",x:`El más comentado es ${lC.s.nombre} (${fmt(lC.a.tot)} comentarios), pero no el mejor valorado: la conversación sobre él o ella es intensa y dividida.`});
+  return out;
+}
+const CT={ok:["Coincide","var(--ok)"],warn:["Contraste","var(--warn)"],bad:["Alerta","var(--bad)"],na:["Datos insuficientes","var(--muted)"]};
+function svgBarras(D,colOf){
+  const W=640,rh=30,L=170,R=50,Ht=D.length*rh+10;
+  return `<svg viewBox="0 0 ${W} ${Ht}" style="width:100%;max-width:760px" role="img" aria-label="Índice consolidado por aspirante">${D.map((d,i)=>{ let x=L; const y=i*rh+6;
+    return `<text x="${L-8}" y="${y+14}" text-anchor="end" style="fill:var(--ink);font-family:var(--f-body);font-size:12px">${esc(d.s.nombre.length>24?d.s.nombre.split(" ").slice(0,2).join(" "):d.s.nombre)}</text>`+CCOMP.map(c=>{ const w=d.cp[c.k]/100*(W-L-R), r=`<rect x="${x}" y="${y}" width="${Math.max(0,w)}" height="18" fill="${c.c}"><title>${c.n}: ${fmt(d.cp[c.k],1)}</title></rect>`; x+=w; return r; }).join("")+`<text x="${x+6}" y="${y+14}" style="fill:var(--ink);font-family:var(--f-mono);font-size:12px">${fmt(d.ci,0)}</text>`; }).join("")}</svg>`;
+}
+function svgMapa(D,colOf){
+  const P=D.filter(d=>d.u&&d.a.tot>=10), W=600,Ht=380,L=50,R=20,T=20,B=40, X=v=>L+v/100*(W-L-R), Y=v=>T+(1-(v+100)/200)*(Ht-T-B);
+  const mxB=Math.max(1,...P.map(d=>d.propio+d.vAp));
+  let g=`<rect x="${X(50)}" y="${T}" width="${X(100)-X(50)}" height="${Y(0)-T}" fill="var(--ok)" opacity=".07"/><rect x="${L}" y="${Y(0)}" width="${X(50)-L}" height="${Ht-B-Y(0)}" fill="var(--bad)" opacity=".07"/>
+    <line x1="${L}" x2="${W-R}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--rule)"/><line x1="${X(50)}" x2="${X(50)}" y1="${T}" y2="${Ht-B}" stroke="var(--rule)"/>
+    <text x="${W-R-4}" y="${T+12}" text-anchor="end">Visible y bien valorado</text><text x="${L+4}" y="${T+12}">Poco visible, bien valorado</text><text x="${W-R-4}" y="${Ht-B-6}" text-anchor="end">Visible pero cuestionado</text><text x="${L+4}" y="${Ht-B-6}">Poco visible y cuestionado</text>
+    <text x="${(L+W-R)/2}" y="${Ht-8}" text-anchor="middle">Presencia digital (termómetro, 0 a 100) →</text><text x="14" y="${(T+Ht-B)/2}" transform="rotate(-90 14 ${(T+Ht-B)/2})" text-anchor="middle">Opinión neta (−100 a +100) →</text>`;
+  [0,25,50,75,100].forEach(v=>g+=`<text x="${X(v)}" y="${Ht-B+14}" text-anchor="middle">${v}</text>`); [-100,-50,0,50,100].forEach(v=>g+=`<text x="${L-6}" y="${Y(v)+3}" text-anchor="end">${v>0?"+":""}${v}</text>`);
+  P.forEach(d=>{ const r=6+18*Math.sqrt((d.propio+d.vAp)/mxB), cx=X(d.u.total), cy=Y(d.neto); g+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${colOf[d.s.id]}" fill-opacity=".55" stroke="${colOf[d.s.id]}"><title>${esc(d.s.nombre)}</title></circle><text x="${cx}" y="${cy-r-4}" text-anchor="middle" style="fill:var(--ink);font-family:var(--f-body);font-size:11px">${esc(d.s.nombre.split(" ")[0]+" "+(d.s.nombre.split(" ")[1]||""))}</text>`; });
+  return `<svg viewBox="0 0 ${W} ${Ht}" style="width:100%;max-width:700px" role="img" aria-label="Mapa de posicionamiento">${g}</svg>${P.length<D.length?`<p class="small muted" style="margin:0">Sin ubicar por falta de datos (medición de redes o 10 comentarios): ${D.filter(d=>!P.includes(d)).map(d=>esc(d.s.nombre)).join(", ")}.</p>`:""}`;
+}
+function svgSexo(D,colOf){
+  const P=D.filter(d=>d.nM>=5||d.nH>=5); if(!P.length) return '<p class="small muted" style="margin:0">Aún no hay comentarios con sexo identificado.</p>';
+  const W=600,rh=28,L=170,R=30,Ht=P.length*rh+30,X=v=>L+(v+100)/200*(W-L-R);
+  let g=`<line x1="${X(0)}" x2="${X(0)}" y1="4" y2="${Ht-22}" stroke="var(--rule)"/>`+[-100,-50,0,50,100].map(v=>`<text x="${X(v)}" y="${Ht-6}" text-anchor="middle">${v>0?"+":""}${v}</text>`).join("");
+  P.forEach((d,i)=>{ const y=i*rh+16; g+=`<text x="${L-8}" y="${y+4}" text-anchor="end" style="fill:var(--ink);font-family:var(--f-body);font-size:12px">${esc(d.s.nombre.split(" ").slice(0,2).join(" "))}</text>`;
+    if(d.nM>=5&&d.nH>=5) g+=`<line x1="${X(d.m)}" x2="${X(d.hh)}" y1="${y}" y2="${y}" stroke="var(--rule)" stroke-width="3"/>`;
+    if(d.nM>=5) g+=`<circle cx="${X(d.m)}" cy="${y}" r="6" fill="var(--s8)"><title>Mujeres ${netoTxt(d.m)} (${d.nM})</title></circle>`;
+    if(d.nH>=5) g+=`<circle cx="${X(d.hh)}" cy="${y}" r="6" fill="var(--s1)"><title>Hombres ${netoTxt(d.hh)} (${d.nH})</title></circle>`; });
+  return `<div class="legend"><span><i style="background:var(--s8)"></i>Mujeres</span><span><i style="background:var(--s1)"></i>Hombres</span></div><svg viewBox="0 0 ${W} ${Ht}" style="width:100%;max-width:700px" role="img" aria-label="Opinión neta por sexo">${g}</svg>`;
+}
+function consolidadoBloques(key,paraPDF){
+  const D=consolidar(key), S=D.map(d=>d.s), colOf=Object.fromEntries(S.map((s,i)=>[s.id,SERIES[i%SERIES.length]]));
+  if(!D.length) return [];
+  const Dop=opis.filter(o=>o.contienda===key), tot=Dop.reduce((a,o)=>a+nz0(o.analizados),0), gan=D[0].gan, fechas=[...new Set(meds.filter(m=>S.some(s=>s.id===m.cand)).map(m=>m.fecha))].sort();
+  const lider=D[0], coh=coherencia(D), R=oRegion(Dop), rmx=Math.max(1,...R.map(r=>r.n));
+  const B=[];
+  B.push(hoja("Indicadores de la contienda",`<div class="kpis">${[["Aspirantes",fmt(D.length)],["Revisiones de redes",fmt(fechas.length)],["Comentarios analizados",fmt(tot)],["Publicaciones revisadas",fmt(Dop.length)],["Umbral 2023",gan?fmt(gan.v)+" votos":"—"]].map(([l,v])=>`<div class="kpi"><span class="label">${l}</span><span class="v">${esc(v)}</span></div>`).join("")}</div>`,
+    `Volumen de información con que se construye este panorama. ${tot<100?"Con menos de 100 comentarios analizados, la parte de opinión es preliminar.":"El volumen de comentarios permite una lectura razonable de la opinión."} ${fechas.length<2?"Con una sola revisión de redes todavía no hay tendencia.":`Las revisiones van del ${esc(fechas[0])} al ${esc(fechas[fechas.length-1])}.`} El umbral es la votación con la que ganó el alcalde de 2023: la referencia de cuántos votos hacen falta.`));
+  B.push(hoja("Índice consolidado",`${svgBarras(D,colOf)}<div class="legend">${CCOMP.map(c=>`<span><i style="background:${c.c}"></i>${c.n} (${c.w})</span>`).join("")}</div>
+    <div class="tbl-wrap"><table><thead><tr><th>Aspirante</th>${CCOMP.map(c=>`<th>${c.n}</th>`).join("")}<th>Total</th><th>Cobertura</th></tr></thead><tbody>${D.map(d=>`<tr><td style="text-align:left;white-space:normal;min-width:9rem"><span class="fdot" style="background:${colOf[d.s.id]}"></span>${esc(d.s.nombre)}</td>${CCOMP.map(c=>`<td class="num">${d.cc[c.k]==null?'<span class="muted">s. d.</span>':fmt(d.cp[c.k],1)}</td>`).join("")}<td class="num"><b>${fmt(d.ci,0)}</b></td><td class="num">${d.cob} de 5</td></tr>`).join("")}</tbody></table></div>`,
+    `Reúne en un solo número de 0 a 100 las cinco dimensiones que miden la app: ${CCOMP.map(c=>`<b>${c.n}</b> (${c.w} puntos): ${c.d}`).join(" ")} En cada una, el mejor de la contienda recibe el puntaje completo y los demás en proporción, igual que en el termómetro. «s. d.» significa sin datos: ese componente suma cero y la cobertura lo advierte. <b>Lectura:</b> ${esc(lider.s.nombre)} encabeza con ${fmt(lider.ci,0)} puntos${D[1]?`, seguido de ${esc(D[1].s.nombre)} con ${fmt(D[1].ci,0)}`:""}. No es una encuesta ni mide intención de voto.`));
+  B.push(hoja("Mapa de posicionamiento",svgMapa(D,colOf),
+    `Cruza las dos lecturas digitales. Hacia la derecha, más presencia en redes; hacia arriba, mejor opinión en los comentarios; el tamaño del círculo es su base electoral y de apoyos. <b>Arriba a la derecha</b> están quienes son visibles y bien valorados (la mejor posición); <b>abajo a la derecha</b>, quienes son visibles pero cuestionados (la exposición les resta); <b>arriba a la izquierda</b>, quienes gustan pero no se ven (pueden crecer con inversión en redes); <b>abajo a la izquierda</b>, quienes ni se ven ni gustan. Un círculo grande en la parte baja indica estructura electoral con problemas de imagen.`));
+  B.push(hoja("Coherencia de la información",`<div style="display:flex;flex-direction:column;gap:6px">${coh.length?coh.map(c=>`<div class="small" style="display:flex;gap:8px;align-items:flex-start"><span class="pill" style="color:${CT[c.t][1]};border-color:${CT[c.t][1]};flex:none">${CT[c.t][0]}</span><span>${esc(c.x)}</span></div>`).join(""):'<p class="small muted" style="margin:0">Sin observaciones.</p>'}</div>`,
+    "Compara entre sí las fuentes (redes, comentarios, histórico y apoyos) para ver si cuentan la misma historia. Cuando coinciden, la conclusión es más sólida; cuando se contradicen, ahí está lo que hay que entender antes de decidir."));
+  const ser=D.filter(d=>d.ser.length).map(d=>({n:d.s.nombre.split(" ").slice(0,2).join(" "),c:colOf[d.s.id],v:fechas.map(f=>{ const x=d.ser.find(z=>z.fecha===f); return x?x.total:null; })}));
+  B.push(hoja("Evolución de la presencia digital",ser.length?tLine(fechas,ser,true):'<p class="small muted" style="margin:0">Sin mediciones de redes.</p>',
+    `Puntaje del termómetro en cada revisión de lunes y jueves. ${fechas.length<2?"Por ahora hay una sola revisión; desde la segunda se verá quién sube y quién baja.":"Una línea que sube indica que su actividad y la respuesta de su audiencia crecen frente a los rivales."}`));
+  B.push(hoja("Opinión: tono por aspirante",`${D.filter(d=>d.a.tot).map(d=>`<div class="oasp"><div class="row" style="justify-content:space-between"><b><span class="fdot" style="background:${colOf[d.s.id]}"></span>${esc(d.s.nombre)}</b><span class="small muted">Índice neto <b class="mono">${netoTxt(d.neto)}</b> · ${fmt(d.a.tot)} comentarios${d.crit?` · le critican ${esc(d.crit?d.crit.tema:"")}`:""}</span></div>${tonoBar(d.a.tono)}</div>`).join("")||'<p class="small muted" style="margin:0">Aún no hay comentarios analizados.</p>'}`,
+    "Proporción de comentarios a favor (verde), neutros (gris) y en contra (rojo) sobre cada aspirante, con su índice neto (% a favor menos % en contra). Incluye lo analizado en la pestaña Opinión, en el Radar de opinión y en la revisión automática, sin contar dos veces la misma publicación."));
+  B.push(hoja("Aprobación aproximada de mujeres y hombres",svgSexo(D,colOf),
+    "Índice neto entre las mujeres (rosado) y entre los hombres (azul) que comentan. La línea gris entre los dos puntos es la brecha: entre más larga, más distinta la percepción. El sexo se estima por el primer nombre de quien comenta, por eso es aproximado; con menos de 5 comentarios en un grupo no se dibuja."));
+  const A=oAgg(Dop,""), top=A.temas.slice(0,10), mx=Math.max(1,...top.map(x=>Math.max(x.favor,x.contra)));
+  B.push(hoja("Temas de la conversación",top.length?`<div class="otemas">${top.map(x=>`<div class="ot"><div class="ot-l"><span class="mono small">${x.contra?fmt(x.contra):""}</span><i style="width:${x.contra/mx*100}%;background:var(--bad)"></i></div><span class="ot-n">${esc(x.tema)}</span><div class="ot-r"><i style="width:${x.favor/mx*100}%;background:var(--ok)"></i><span class="mono small">${x.favor?fmt(x.favor):""}</span></div></div>`).join("")}</div>`:'<p class="small muted" style="margin:0">Sin temas todavía.</p>',
+    "De qué habla la gente cuando se refiere a los aspirantes: a la izquierda las menciones en contra, a la derecha a favor. Los temas con mucho rojo son los frentes de ataque de la contienda; los de mucho verde, los argumentos que funcionan."));
+  B.push(hoja("Problemáticas de la región",R.length?`<div style="display:flex;flex-direction:column;gap:6px">${R.slice(0,10).map(r=>`<div class="row" style="gap:10px;flex-wrap:nowrap"><span class="small" style="width:min(13rem,40%);flex:none"><b>${esc(r.tema)}</b><br><span class="muted">${esc([...r.canales].join(", "))}</span></span><div class="sbar" style="flex:1;min-width:4rem;margin:0"><i style="width:${r.n/rmx*100}%;background:var(--c-musculo)"></i></div><span class="mono small" style="width:3rem;text-align:right">${fmt(r.n)}</span></div>`).join("")}</div>`:'<p class="small muted" style="margin:0">Aún no se han identificado.</p>',
+    "Problemas del municipio que aparecen en los comentarios aunque no se nombre a ningún aspirante, y el canal donde aparecen. Son la agenda real de la gente: el aspirante que se apropie de ellos con propuestas creíbles conecta mejor."));
+  B.push(hoja("Base electoral y apoyos",`<div class="tbl-wrap"><table><thead><tr><th>Aspirante</th><th>Mejor votación propia</th><th>Votos de apoyos</th><th>Total de referencia</th><th>Frente al umbral</th><th>Apoyos</th></tr></thead><tbody>${D.slice().sort((a,b)=>(b.propio+b.vAp)-(a.propio+a.vAp)).map(d=>`<tr><td style="text-align:left;white-space:normal;min-width:9rem">${esc(d.s.nombre)}</td><td class="num">${d.propio?fmt(d.propio)+" ("+d.h.best.y+")":"—"}</td><td class="num">${fmt(d.vAp)}</td><td class="num"><b>${fmt(d.propio+d.vAp)}</b></td><td class="num">${gan?pct((d.propio+d.vAp)/gan.v,0):"—"}</td><td style="text-align:left;white-space:normal" class="small">${esc(d.ap.map(x=>x.a.nombre).join(", ")||"—")}</td></tr>`).join("")}</tbody></table></div>`,
+    `Lo que cada aspirante ya demostró en las urnas y lo que suman quienes lo respaldan, frente al umbral de ${gan?fmt(gan.v):"—"} votos. Es la dimensión más difícil de construir en poco tiempo. Los votos de los apoyos no se transfieren completos: tómelos como estructura disponible, no como votos asegurados.`));
+  B.push(hoja("Matriz de viabilidad por aspirante",`<div class="tbl-wrap"><table><thead><tr><th>Dimensión</th>${D.map(d=>`<th style="white-space:normal;min-width:5.5rem;text-align:center">${esc(d.s.nombre.split(" ").slice(0,2).join(" "))}</th>`).join("")}</tr></thead><tbody>${D[0].ind.map((i,k)=>`<tr><td style="text-align:left;white-space:normal;min-width:8rem">${esc(i.k)}</td>${D.map(d=>`<td style="text-align:center"><span class="pill" style="color:${NIV[d.ind[k].nivel][1]};border-color:${NIV[d.ind[k].nivel][1]}" title="${esc(d.ind[k].valor)}">${NIV[d.ind[k].nivel][0]}</span></td>`).join("")}</tr>`).join("")}</tbody></table></div>`,
+    "Las diez dimensiones del informe estratégico (filas) para cada aspirante (columnas), calificadas como fuerte, media o débil. Permite ver de un vistazo el perfil de cada uno: quién es fuerte en estructura pero débil en imagen, quién al revés, y a quién le faltan datos. El detalle y las recomendaciones de cada aspirante están en su informe estratégico."));
+  const an=anas.find(x=>x.id===tSlug(key));
+  if(an&&(an.conjunta||an.texto)) B.push(hoja("Lectura de la contienda",`<div class="ai-out" style="max-width:none">${esc((an.conjunta||an).texto||"")}</div>`,`${an.conjunta?"Lectura conjunta (redes, opinión, apoyos e histórico)":"Lectura del termómetro"} del ${esc((an.conjunta||an).fecha||"")}.`));
+  return B;
+}
+function renderConsolidado(){
+  const out=$("#c-out"), sel=$("#c-cont");
+  if(tState!=="ok"){ out.innerHTML=`<div class="sheet empty"><h3>Cargando…</h3></div>`; return; }
+  const conts=[...new Set(segs.map(tKey))]; if(!conts.length){ out.innerHTML=`<div class="sheet empty"><h3>Aún no hay aspirantes en seguimiento</h3></div>`; return; }
+  if(!conts.includes(cCont)) cCont=conts.includes(tCont)?tCont:conts[0];
+  sel.innerHTML=conts.map(k=>`<option value="${esc(k)}"${k===cCont?" selected":""}>${esc(contiendaNom(...k.split("|")))}</option>`).join("");
+  if(hState!=="ok"){ out.innerHTML=`<div class="sheet empty"><h3>Cargando el histórico electoral…</h3></div>`; return; }
+  out.innerHTML=consolidadoBloques(cCont).join("")+`<p class="note">Todas las cifras de esta página salen de los mismos datos que el Termómetro, la Opinión, el Radar de opinión y el Histórico; por eso coinciden en todas las pestañas y en los informes.</p>`;
+}
+async function informeConsolidado(btn){
+  const st=$("#c-st"); if(hState!=="ok"){ st.textContent="Espera a que cargue el histórico."; return; }
+  const nombreC=contiendaNom(...cCont.split("|"));
+  const bl=[portadaHTML("Radar Electoral 2027 · Informe consolidado",nombreC,"Panorama integrado: redes, opinión, histórico y apoyos","Cada gráfica y cuadro va acompañado de su explicación. No es una encuesta ni mide intención de voto (Ley 2494 de 2025).")];
+  bl.push(...consolidadoBloques(cCont,true));
+  bl.push(hoja("Fuentes y método",`<p class="small" style="margin:0">Redes: perfiles públicos de Facebook, Instagram y TikTok y Biblioteca de Anuncios de Meta (revisiones de lunes y jueves, ventana de 14 días). Opinión: comentarios públicos de las publicaciones registradas en Opinión y en el Radar de opinión; no se guardan nombres y el sexo se estima por el primer nombre. Histórico: Registraduría Nacional del Estado Civil (2019 y 2023, mesa a mesa) y CEDAE, Universidad de los Andes (2003–2015). Señales y apoyos: prensa regional citada en cada señal. Índice consolidado: base y estructura 30, opinión neta 25, presencia digital 20, peso en la conversación 15, bajo rechazo 10.</p>${CREDITOS}`));
+  await pdfDeBloques(bl,`Informe_Consolidado_${tSlug(cCont)}_${hoy()}.pdf`,nombreC,st,btn);
+}
+document.addEventListener("change",e=>{ if(e.target.id==="c-cont"){ cCont=tCont=oCont=e.target.value; renderConsolidado(); } });
+document.addEventListener("click",e=>{ const t=e.target.closest&&e.target.closest("#c-pdf"); if(t) informeConsolidado(t); });
 /* ---------- Navegación ---------- */
-function vista(){ const vs=ESTATICO?(RADAR_ON?["termometro","opinion","radar","historico"]:["termometro","opinion","historico"]):["panorama","candidatos","comparar","termometro","opinion","radar","historico"]; const v=(location.hash||"").slice(1); return vs.includes(v)?v:vs[0]; }
+function vista(){ const vs=ESTATICO?(RADAR_ON?["consolidado","termometro","opinion","radar","historico"]:["consolidado","termometro","opinion","historico"]):["panorama","candidatos","comparar","consolidado","termometro","opinion","radar","historico"]; const v=(location.hash||"").slice(1); return vs.includes(v)?v:vs[0]; }
 function renderAll(){
   const v=vista();
   if(RADAR_ON) opisMerge();
-  ["panorama","candidatos","comparar","termometro","opinion","radar","historico"].forEach(n=>$("#v-"+n).hidden=n!==v);
+  ["panorama","candidatos","comparar","consolidado","termometro","opinion","radar","historico"].forEach(n=>$("#v-"+n).hidden=n!==v);
+  if(v==="consolidado") renderConsolidado();
   if(v==="radar") renderRadar();
   if(v==="termometro") renderTermo();
   if(v==="opinion") renderOpinion();
@@ -2554,7 +2682,7 @@ window.addEventListener("hashchange",renderAll);
 opts($("#fc-cargo"),[["","Todos"],...Object.entries(CARGOS)],"");
 opts($("#fc-depto"),[["","Todos"],...Object.keys(DEPTOS).map(d=>[d,d])],"");
 (function(){ const d=Math.ceil((ELECCION-new Date())/864e5); $("#st-dias").innerHTML=d>0?`<b class="mono">${fmt(d)}</b> días para la elección territorial del 31 de octubre de 2027 (fecha estimada: último domingo de octubre)`:""; })();
-if(ESTATICO){ document.querySelectorAll("nav.tabs a").forEach(a=>{ if(!["termometro","opinion","historico"].concat(RADAR_ON?["radar"]:[]).includes(a.dataset.v)) a.remove(); }); }
+if(ESTATICO){ document.querySelectorAll("nav.tabs a").forEach(a=>{ if(!["consolidado","termometro","opinion","historico"].concat(RADAR_ON?["radar"]:[]).includes(a.dataset.v)) a.remove(); }); }
 setStatus(); renderAll();
 initStore(); loadHist();
 </script>
