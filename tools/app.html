@@ -1733,7 +1733,7 @@ function renderTermo(){
       <div class="legend">${TCOMP.map(c=>`<span><i style="background:${c.c}"></i>${c.n} ${c.w}</span>`).join("")}</div></div>
     <div class="rank">${idx.map((r,i)=>{ const s=byId[r.id], p=pPrev[r.id];
       return `<div class="rk"><span class="pos">${i+1}</span>
-        <div class="who"><b>${esc(s.nombre)}</b><span class="small muted">${esc(s.partido||"")}</span>${r.x.redes<3?`<span class="pill warn">${r.x.redes} de 3 redes</span>`:'<span class="pill ok">3 redes</span>'}${p?dl(r.total,p.total,v=>fmt(v,0)+" pts"):""}</div>
+        <div class="who"><b>${esc(s.nombre)}</b><span class="small muted">${esc(s.partido||"")}</span>${r.x.redes<3?`<span class="pill warn">${r.x.redes} de 3 redes</span>`:'<span class="pill ok">3 redes</span>'}${p?dl(r.total,p.total,v=>fmt(v,0)+" pts"):""}${(o=>o?`<span class="pill" title="Índice neto de opinión en ${o.n} comentarios analizados">Opinión ${netoTxt(o.neto)}</span>`:"")(opinionDe(tCont,r.id))}</div>
         <span class="tot">${fmt(r.total)}<small>de 100</small></span>
         <div class="bar" title="${TCOMP.map(c=>c.n+": "+fmt(r.contrib[c.k],1)).join(" · ")}">${TCOMP.map(c=>`<i style="width:${r.contrib[c.k]}%;background:${c.c}"></i>`).join("")}</div></div>`; }).join("")}</div>
     ${sinMed.length?`<div class="small muted" style="display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--rule-2);padding-top:10px"><span class="label">Sin medición todavía</span>${sinMed.map(s=>`<div class="row" style="gap:8px"><span class="fdot" style="background:${colOf[s.id]}"></span><b style="color:var(--ink)">${esc(s.nombre)}</b><span>${esc(s.partido||"")}</span><span class="pill warn">${Object.keys(s.cuentas||{}).length?"Redes por medir":"Redes por identificar"}</span></div>`).join("")}<span>Entran en el puntaje desde su primera medición.</span></div>`:""}
@@ -1765,6 +1765,7 @@ function renderTermo(){
         ${(()=>{ const a=(s.analisis||[]).slice().sort((x,y)=>y.fecha.localeCompare(x.fecha)); if(!a.length) return "";
           return `<div class="small" style="display:flex;flex-direction:column;gap:4px;background:var(--accent-soft);padding:10px 12px;border-radius:4px"><span class="label">Análisis · ${esc(a[0].fecha)}</span><span style="line-height:1.55">${esc(a[0].texto)}</span>${a.length>1?`<details><summary class="small" style="cursor:pointer">Análisis anteriores</summary>${a.slice(1).map(x=>`<p class="small" style="margin:6px 0 0"><b class="mono">${esc(x.fecha)}</b> ${esc(x.texto)}</p>`).join("")}</details>`:""}</div>`; })()}
         ${apoyosHTML(s)}
+        ${opinionFicha(tCont,s)}
         ${hm.length>1?`<div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Audiencia</th><th>Interacciones</th><th>Vistas TikTok</th></tr></thead><tbody>${hm.map(x=>{ const t=tMetr(x); return `<tr><td class="num">${esc(x.fecha)}</td><td class="num">${fmt(t.aud)}</td><td class="num">${fmt(t.inter)}</td><td class="num">${x.tt?fmt(nz0(x.tt.vistas)):"—"}</td></tr>`; }).join("")}</tbody></table></div>`:""}
       </div></article>`; }).join("")}</div>`;
   const opts=S.map(s=>`<option value="${esc(s.id)}">${esc(s.nombre)}</option>`).join("");
@@ -1798,7 +1799,7 @@ function renderTermo(){
     ${tLine(fechas,idx.map(r=>({n:byId[r.id].nombre.split(" ").slice(-2).join(" "),c:colOf[r.id],v:fechas.map(f=>{ const x=porFecha(f).find(z=>z.id===r.id); return x?x.total:null; })})),true)}</div>`;
   const an=anas.find(a=>a.id===tSlug(tCont));
   const lectura=an?`<div class="sheet pad" style="display:flex;flex-direction:column;gap:8px;border-left:4px solid var(--accent)"><span class="label">Lectura de la contienda · ${esc(an.fecha||"")}</span><div class="ai-out" style="max-width:85ch">${esc(an.texto||"")}</div></div>`:"";
-  out.innerHTML=rank+lectura+evol+explica+tabla+curva+caudalHTML(S,[...idx.map(r=>r.id),...sinMed.map(s=>s.id)],colOf)+fichas+fuentesTermo(S,mUlt,ult,colOf)+(ESTATICO?"":form)+(ESTATICO?"":apoyoDatalist(S))+`<p class="note">Método: interacciones de las publicaciones propias dentro de la ventana (sin colaboraciones de terceros). Tasa de interacción = interacciones por publicación ÷ seguidores, promediada entre Facebook e Instagram. El índice compara a los aspirantes entre sí con los pesos que ves en la leyenda; un aspirante sin cuenta en una red obtiene cero en ese componente.</p>`;
+  out.innerHTML=rank+lectura+conjuntaHTML(tCont)+evol+explica+tabla+curva+caudalHTML(S,[...idx.map(r=>r.id),...sinMed.map(s=>s.id)],colOf)+fichas+fuentesTermo(S,mUlt,ult,colOf)+(ESTATICO?"":form)+(ESTATICO?"":apoyoDatalist(S))+`<p class="note">Método: interacciones de las publicaciones propias dentro de la ventana (sin colaboraciones de terceros). Tasa de interacción = interacciones por publicación ÷ seguidores, promediada entre Facebook e Instagram. El índice compara a los aspirantes entre sí con los pesos que ves en la leyenda; un aspirante sin cuenta en una red obtiene cero en ese componente.</p>`;
 }
 /* Fuentes de la revisión del termómetro */
 function fuentesTermo(S,mUlt,ult,colOf){
@@ -1818,75 +1819,160 @@ function fuentesTermo(S,mUlt,ult,colOf){
     <p class="small" style="margin:0;max-width:85ch"><b>Otras fuentes.</b> Señales y apoyos: prensa regional, citada con el medio y la fecha en cada señal. Base electoral: Registraduría Nacional del Estado Civil (2019 y 2023, mesa a mesa) y CEDAE, Universidad de los Andes (2003–2015). Pauta: Biblioteca de Anuncios de Meta (Colombia, anuncios sobre temas sociales, elecciones o política, últimos 30 días). Opinión: comentarios públicos de las publicaciones listadas en la pestaña Opinión.</p></div>`;
 }
 
-/* ---------- Opinión: temas y tono de los comentarios ---------- */
-let oCont="", oCand="", oPer="30", oPrev=null;
+/* ---------- Opinión: temas, tono, canales, problemáticas y sexo ---------- */
+let oCont="", oCand="", oPer="30", oPrev=null, oImp=null, conjCtl=null;
 const OTONO={favor:{n:"A favor",c:"var(--ok)"},neutro:{n:"Neutro",c:"var(--rule)"},contra:{n:"En contra",c:"var(--bad)"}};
 const OTIPOS=["Página o perfil del aspirante","Grupo público","Página de noticias o medio","Página de ciudad o comunidad","Otra"];
 const ORED=["Facebook","Instagram","TikTok","X","YouTube","Otra"];
-const OTEMAS=["Seguridad","Empleo y economía","Corrupción","Gestión y experiencia","Obras y vías","Salud","Educación","Servicios públicos","Movilidad","Cercanía con la gente","Alianzas y padrinos políticos","Partido","Campaña y propaganda","Honestidad y confianza","Renovación","Otro"];
+const OTEMAS=["Seguridad","Empleo y economía","Corrupción","Gestión y experiencia","Obras y vías","Salud","Educación","Servicios públicos","Movilidad","Cercanía con la gente","Alianzas y padrinos políticos","Partido","Campaña y propaganda","Honestidad y confianza","Renovación","Apoyo directo","Rechazo sin argumento","Otro"];
 const temaKey=t=>nrm(t||"").replace(/[^A-Z0-9]+/g," ").trim();
 const nCom=r=>nz0(r.favor)+nz0(r.contra)+nz0(r.neutro);
+const netoDe=t=>{ const n=nz0(t.favor)+nz0(t.contra)+nz0(t.neutro); return n?Math.round((nz0(t.favor)-nz0(t.contra))*100/n):null; };
+const netoTxt=v=>v==null?"—":(v>0?"+":"")+v;
+const onorm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+const canalDe=f=>(f||{}).tipo==="Página de noticias o medio"?"Medios de comunicación":((f||{}).red||"Otra");
+/* Lectura del texto copiado de Facebook (viene del radar de opinión) */
+const OJUNK=/^(·|editado|ver traducci[oó]n|me gusta|responder|compartir|ver m[aá]s.*|ver \d+ respuestas?.*|ver todas las \d+ respuestas.*|ocultar.*|autor|fan destacado|top fan|seguir|\d+)$/i;
+const OTIEMPO=/^(\d+)\s*(min|h|d|sem|a)\.?$/i;
+function oParse(txt){
+  const blocks=[]; let cur=[];
+  for(const l of txt.replace(/\r/g,"").split("\n")){ if(l.trim().toLowerCase()==="responder"){ blocks.push(cur); cur=[]; } else cur.push(l); }
+  if(cur.join("").trim()) blocks.push(cur);
+  const out=[];
+  for(const b of blocks){ const clean=[]; for(const raw of b){ const l=raw.trim(); if(!l||OTIEMPO.test(l)||OJUNK.test(l)) continue; clean.push(l); }
+    if(clean.length>=2) out.push({name:clean[0],text:clean.slice(1).join(" ")}); }
+  const names=[...new Set(out.map(o=>o.name))].sort((a,b)=>b.length-a.length);
+  out.forEach(o=>{ for(const n of names){ if(n!==o.name&&o.text.startsWith(n+" ")){ o.reply=true; o.text=o.text.slice(n.length+1).trim(); break; } } });
+  return out;
+}
+const NOM_H=new Set(('juan carlos jose luis jorge andres diego david daniel alejandro fernando javier miguel pedro pablo ricardo sergio hernan oscar mario edwin jhon john jhonatan jonathan julian julio cesar camilo cristian christian felipe santiago sebastian mauricio alberto gustavo guillermo gonzalo hector hugo ivan jaime jairo jesus fabio favio francisco gabriel gerardo german harold henry jefferson jeison jeyson jimmy jhonny johnny kevin leonardo leo manuel marco marcos martin mateo nelson nicolas omar orlando rafael ramiro raul rodrigo ruben samuel simon uver victor wilson william wilber wilmer yesid yeison dairo alexander alex alexis alekxis alfredo alvaro antonio armando arley arturo bernardo dario edgar eduardo elkin emiliano enrique ernesto esteban ever fredy freddy hermes humberto ignacio jader joaquin lider lucas marino mariano napoleon nestor norberto octavio rene robinson rolando saul steven thiago tomas yefri yefry jeffrey jeffry ruibe edumar ery eugenio fernando karlos guillermo hoffman andre edison edisson elmer emerson fabian franklin geovanny giovanny hamilton heriberto jhojan joan johan john jair jaider jhoan libardo luciano maicol michael miller milton nolberto ramon reinaldo reynaldo rigoberto ronald roberto rubiel silvio teofilo uriel vicente wilfredo wilfer wilmar yamid yhon yovany diomedes evelio gilberto hernando jesus amauri antony anthony brayan brian bryan duvan dubian estiven stiven estefan jhordan jordan juanes juanpa pipe toño chucho kike dayron jon yessid yesid alexxander dvd brandon dilan dylan jhonier yeferson jeferson darwin danilo cristobal adrian alonso aurelio benjamin bladimir vladimir efrain eider elias emilio ezequiel farid gregorio isaac israel jacobo jeronimo leandro lisandro luciano mauro moises nicolas oswaldo pascual ramon salvador segundo tiberio ulises wilmer yair yeferson').split(' '));
+const NOM_M=new Set(('maria ana luz gloria sandra snadra claudia martha marta patricia carolina diana adriana liliana lina luisa paola andrea alejandra viviana yenny jenny leidy leydi lady nelly nancy olga rosa rosalba dalia sofia susana karime karolina lilia myriam miriam mariella mariela marisol idalia isabel isa nhora nora maricel mayra mary magdalena elena gladys erika erikita eliana yeiny yeimy yesica jessica lorena mariana manuela valentina natalia catalina daniela camila juliana laura monica angela beatriz cielo nilfa luza videlia sara alba aleja anamaria marcela guadalupe beatriz amparo aura blanca carmen cecilia clara consuelo dora edilma esperanza fanny francy gabriela genny graciela ines irma johana yohana jhoana julieta karen katherine kelly lucia luz marlene mercedes milena nidia noralba omaira pilar rocio roci ruby sonia stella teresa yolanda zulma alix ximena tatiana vanessa vanesa yuliana yurany yuri yady deisy daisy dayana diana luciana maritza matilde nubia piedad sandra shirley stefany stephany estefania tania yaneth janeth yamile zoraida ofelia doris eva alicia rubiela emilse ligia lida hilda belen jazmin yazmin jasmin diane dayana yesenia yisel yiseth leidys lizeth lizet lisseth luzmila marleny nathaly nataly paula sharon sindy cindy wendy xiomara yudy judith ruth raquel rebeca esther miriam noemi carla karla brenda tatiana angie ingrid evelyn emily').split(' '));
+const NO_PERSONA=/(noticias|pereira|zarzal|oficial|radio|tv|television|dialogos|informa|denuncias|comunidad|grupo|pagina|tienda|store|shop|boss|club|fan|news|medios|periodico|emisora|canal|alcaldia|concejo|partido)/;
+function sexoDe(nombre){ const n=onorm(nombre); if(!n) return "?";
+  const w=n.replace(/[^a-z ñ]/g," ").split(/\s+/).filter(x=>x.length>=2); if(!w.length) return "?";
+  for(const t of w.slice(0,2)){ if(NOM_H.has(t)) return "H"; if(NOM_M.has(t)) return "M"; }
+  if(NO_PERSONA.test(n)) return "?";
+  const t=w[0]; if(t.length>=4&&/^[a-zñ]+$/.test(t)){ if(/a$/.test(t)) return "M"; if(/o$/.test(t)) return "H"; } return "?"; }
+const oHash=s=>{ let h=2166136261; for(const ch of String(s)){ h^=ch.codePointAt(0); h=Math.imul(h,16777619); } return (h>>>0).toString(36); };
+const otk=s=>onorm(s).split(/[^a-zñ]+/).filter(w=>w.length>2&&!["del","las","los","san"].includes(w));
+function mismaP(a,b){ const A=otk(a),B=otk(b); if(A.length<2||B.length<2) return onorm(a)===onorm(b); const [c,l]=A.length<=B.length?[A,B]:[B,A]; return c.every(w=>l.includes(w)); }
+
 function oFiltro(){
   const S=segs.filter(s=>tKey(s)===oCont);
   let lim=""; if(oPer!=="todo"){ const d=new Date(); d.setDate(d.getDate()-(+oPer)); lim=d.toISOString().slice(0,10); }
   const D=opis.filter(o=>o.contienda===oCont&&(!lim||(o.fecha||"")>=lim)).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")||(b.id||"").localeCompare(a.id||""));
   return {S,D};
 }
+const vacioT=()=>({favor:0,contra:0,neutro:0});
 function oAgg(D,cand){
-  const tono={favor:0,contra:0,neutro:0}, T=new Map();
+  const tono=vacioT(), T=new Map(), sexo={H:vacioT(),M:vacioT()};
   D.forEach(o=>(o.resultados||[]).forEach(r=>{ if(cand&&r.cand!==cand) return;
     Object.keys(tono).forEach(k=>tono[k]+=nz0(r[k]));
+    ["H","M"].forEach(g=>{ const x=(r.sexo||{})[g]; if(x) Object.keys(tono).forEach(k=>sexo[g][k]+=nz0(x[k])); });
     (r.temas||[]).forEach(t=>{ const k=temaKey(t.tema); if(!k) return; const x=T.get(k)||{tema:t.tema,favor:0,contra:0,neutro:0}; x[OTONO[t.tono]?t.tono:"neutro"]+=nz0(t.n)||1; T.set(k,x); }); }));
-  return {tono,tot:tono.favor+tono.contra+tono.neutro,temas:[...T.values()].map(x=>({...x,tot:x.favor+x.contra+x.neutro})).sort((a,b)=>b.tot-a.tot)};
+  const temas=[...T.values()].map(x=>({...x,tot:x.favor+x.contra+x.neutro})).sort((a,b)=>b.tot-a.tot);
+  return {tono,sexo,tot:tono.favor+tono.contra+tono.neutro,temas,
+    crit:temas.filter(x=>x.contra>0).sort((a,b)=>b.contra-a.contra)[0]||null, elog:temas.filter(x=>x.favor>0).sort((a,b)=>b.favor-a.favor)[0]||null};
+}
+function oRegion(D){ const R=new Map(); D.forEach(o=>(o.region||[]).forEach(p=>{ const k=temaKey(p.tema); if(!k) return; const x=R.get(k)||{tema:p.tema,n:0,canales:new Set()}; x.n+=nz0(p.n)||1; x.canales.add(canalDe(o.fuente)); R.set(k,x); })); return [...R.values()].sort((a,b)=>b.n-a.n); }
+/* Cruces con el termómetro */
+function tPuntajes(key){
+  const S=segs.filter(s=>tKey(s)===key), ids=new Set(S.map(s=>s.id)), M=meds.filter(m=>ids.has(m.cand)), f=[...new Set(M.map(m=>m.fecha))].sort();
+  if(!f.length) return {};
+  const ult=f[f.length-1]; return Object.fromEntries(tIndice(M.filter(m=>m.fecha===ult).map(m=>({id:m.cand,m}))).map(r=>[r.id,{total:r.total,share:r.share,fecha:ult}]));
+}
+function opinionDe(key,id){ const a=oAgg(opis.filter(o=>o.contienda===key),id); return a.tot?{n:a.tot,neto:netoDe(a.tono),crit:a.crit,elog:a.elog,m:netoDe(a.sexo.M),h:netoDe(a.sexo.H),nm:nCom(a.sexo.M),nh:nCom(a.sexo.H)}:null; }
+function opinionFicha(key,s){ const o=opinionDe(key,s.id); if(!o) return "";
+  return `<div class="small" style="display:flex;flex-direction:column;gap:3px"><span class="label">Opinión en redes · ${fmt(o.n)} comentarios</span>
+    <span>Índice neto <b class="mono" style="color:${o.neto>=0?"var(--ok)":"var(--bad)"}">${netoTxt(o.neto)}</b>${o.crit?` · Le critican: <b>${esc(o.crit.tema)}</b>`:""}${o.elog?` · Le elogian: <b>${esc(o.elog.tema)}</b>`:""}</span>
+    ${o.nm||o.nh?`<span class="muted">Aprobación aproximada: mujeres ${netoTxt(o.m)} (${fmt(o.nm)}) · hombres ${netoTxt(o.h)} (${fmt(o.nh)})</span>`:""}
+    <a href="#opinion" data-gop="${esc(key)}">Ver la opinión →</a></div>`; }
+function conjuntaHTML(key){ const a=anas.find(x=>x.id===tSlug(key)); const c=a&&a.conjunta;
+  return `<div class="sheet pad" style="display:flex;flex-direction:column;gap:8px;border-left:4px solid var(--c-medios)"><div class="row" style="justify-content:space-between"><span class="label">Lectura conjunta: redes, opinión, apoyos e histórico${c?" · "+esc(c.fecha||""):""}</span>${ESTATICO?"":`<span class="row" style="gap:6px"><button class="btn sm" type="button" data-conj="${esc(key)}"${sampleFn?"":" disabled"}>${c?"Actualizar":"Generar"} lectura conjunta</button><button class="btn sm ghost" type="button" data-conjstop="1" hidden>Detener</button></span>`}</div>
+    <div class="ai-out" style="max-width:85ch">${c?esc(c.texto||""):`<span class="muted small">${ESTATICO?"Aún no hay lectura conjunta para esta contienda.":"Claude cruza el termómetro digital, la opinión en los comentarios (por canal, tema y sexo), las problemáticas de la región, las señales, los apoyos y el histórico electoral."}</span>`}</div></div>`; }
+async function generarConjunta(key,btn){
+  const S=segs.filter(s=>tKey(s)===key), P=tPuntajes(key), D=opis.filter(o=>o.contienda===key), box=btn.closest(".sheet"), out=box.querySelector(".ai-out"), stop=box.querySelector("[data-conjstop]");
+  const lin=S.map(s=>{ const p=P[s.id], o=opinionDe(key,s.id), h=histDe(s.histNombre);
+    return `- ${s.nombre} (${s.partido||"sin partido"}; ${s.rol||""}). Termómetro: ${p?fmt(p.total,0)+" de 100, "+pct(p.share,0)+" de la conversación ("+p.fecha+")":"sin medición"}. Opinión: ${o?`${o.n} comentarios, índice neto ${netoTxt(o.neto)}, le critican ${o.crit?o.crit.tema:"—"}, le elogian ${o.elog?o.elog.tema:"—"}, mujeres ${netoTxt(o.m)} (${o.nm}), hombres ${netoTxt(o.h)} (${o.nh})`:"sin comentarios analizados"}. Mejor votación: ${h?h.best.v+" ("+h.best.y+")":"sin historial"}. Apoyos: ${(s.apoyos||[]).map(a=>a.nombre).join(", ")||"ninguno registrado"}. Señales: ${(s.senales||[]).slice(-4).join(" | ")}`; }).join("\n");
+  const can={}; D.forEach(o=>{ const k=canalDe(o.fuente); can[k]=(can[k]||0)+nz0(o.analizados); });
+  const reg=oRegion(D).slice(0,8).map(r=>`${r.tema} (${r.n})`).join(", ");
+  const prompt=`Eres analista electoral en Colombia. Escribe una lectura conjunta y neutral de la contienda por la ${contiendaNom(...key.split("|"))} con estos datos. Español sencillo, 3 o 4 párrafos cortos, sin títulos ni viñetas:
+1) quién lidera en presencia digital y en opinión, y si ambas coinciden o se contradicen; 2) qué temas le suman y le restan a cada uno y si hay diferencias entre mujeres y hombres (aclara que es aproximado); 3) qué problemáticas de la región aparecen en la conversación y qué canales pesan más; 4) cómo se compara todo con la base electoral y los apoyos, y qué vigilar.
+No predigas resultados ni hables de intención de voto. Señala cuando los datos sean pocos.
+
+ASPIRANTES
+${lin}
+
+CANALES (comentarios analizados): ${Object.entries(can).map(([k,v])=>k+": "+v).join(", ")||"sin datos"}
+PROBLEMÁTICAS DE LA REGIÓN MENCIONADAS: ${reg||"sin datos"}`;
+  conjCtl=new AbortController(); btn.disabled=true; if(stop) stop.hidden=false; out.textContent="Pensando…";
+  try{ const r=await sampleFn(prompt,{signal:conjCtl.signal,onText:({text})=>{ out.textContent=text; }}); const texto=(r&&r.text)||out.textContent;
+    const ref=db.collection("analisis").doc(tSlug(key)), dat={conjunta:{fecha:hoy(),texto}};
+    try{ if(anas.some(a=>a.id===tSlug(key))) await ref.update(dat); else await ref.set(dat); toast("Lectura conjunta guardada"); }catch(e){ toast("No se pudo guardar la lectura. Solo el dueño de la app puede guardarla."); } }
+  catch(e){ if(e&&e.name!=="AbortError") out.textContent=errCopy(e); }
+  finally{ btn.disabled=false; if(stop) stop.hidden=true; }
 }
 const tonoBar=t=>{ const tot=t.favor+t.contra+t.neutro||1, p=k=>t[k]/tot*100;
   return `<div class="tono" title="A favor ${fmt(p("favor"),0)} %, neutro ${fmt(p("neutro"),0)} %, en contra ${fmt(p("contra"),0)} %"><i style="width:${p("favor")}%;background:var(--ok)"></i><i style="width:${p("neutro")}%;background:var(--rule)"></i><i style="width:${p("contra")}%;background:var(--bad)"></i></div>
     <div class="row small" style="gap:4px 14px"><span><b class="num" style="color:var(--ok)">${fmt(p("favor"),0)} %</b> a favor</span><span><b class="num">${fmt(p("neutro"),0)} %</b> neutro</span><span><b class="num" style="color:var(--bad)">${fmt(p("contra"),0)} %</b> en contra</span></div>`; };
+const sh=(t,body,nota)=>`<div class="sheet pad" style="display:flex;flex-direction:column;gap:10px">${t}${nota?`<p class="small muted" style="margin:0;max-width:85ch">${nota}</p>`:""}${body}</div>`;
 function renderOpinion(){
   const out=$("#o-out"), sel=$("#o-cont");
   $("#o-per").value=oPer;
   if(tState==="sin-db"){ sel.innerHTML=""; out.innerHTML=`<div class="sheet empty"><h3>La opinión necesita el almacenamiento de la app</h3><p>Abre la app desde claude.ai con tu cuenta para ver los análisis guardados.</p></div>`; return; }
   if(tState!=="ok"){ out.innerHTML=`<div class="sheet empty"><h3>Cargando análisis…</h3></div>`; return; }
-  if(!segs.length){ sel.innerHTML=""; out.innerHTML=`<div class="sheet empty"><h3>Aún no hay aspirantes en seguimiento</h3><p>Agrega aspirantes a una contienda para analizar los comentarios sobre ellos.</p></div>`; return; }
+  if(!segs.length){ sel.innerHTML=""; out.innerHTML=`<div class="sheet empty"><h3>Aún no hay aspirantes en seguimiento</h3></div>`; return; }
   const conts=[...new Set(segs.map(tKey))];
   if(!conts.includes(oCont)) oCont=conts.includes(tCont)?tCont:conts[0];
   sel.innerHTML=conts.map(k=>{ const [c,d,m]=k.split("|"); return `<option value="${esc(k)}"${k===oCont?" selected":""}>${esc(contiendaNom(c,d,m))}</option>`; }).join("");
-  const {S,D}=oFiltro(), byId=Object.fromEntries(S.map(s=>[s.id,s])), colOf=Object.fromEntries(S.map((s,i)=>[s.id,SERIES[i%SERIES.length]]));
+  const {S,D}=oFiltro(), byId=Object.fromEntries(S.map(s=>[s.id,s])), colOf=Object.fromEntries(S.map((s,i)=>[s.id,SERIES[i%SERIES.length]])), P=tPuntajes(oCont);
   if(oCand&&!byId[oCand]) oCand="";
-  const fw=$("#o-form"); if(ESTATICO) fw.innerHTML=""; else if(fw.dataset.c!==oCont){ fw.innerHTML=oFormHTML(S); fw.dataset.c=oCont; }
-  if(!D.length){ out.innerHTML=`<div class="sheet empty"><h3>Aún no hay comentarios analizados${oPer!=="todo"?" en este periodo":""}</h3><p>${oPer!=="todo"&&opis.some(o=>o.contienda===oCont)?"Cambia el periodo a «Todo» para ver análisis anteriores.":"Los comentarios se analizan en cada revisión de redes (lunes y jueves) y también puedes pegarlos tú abajo."}</p></div>`; return; }
+  const fw=$("#o-form"); if(ESTATICO) fw.innerHTML=""; else if(fw.dataset.c!==oCont){ fw.innerHTML=oFormHTML(S)+oImportHTML()+oAspHTML(); fw.dataset.c=oCont; }
+  const conj=conjuntaHTML(oCont);
+  if(!D.length){ out.innerHTML=conj+`<div class="sheet empty"><h3>Aún no hay comentarios analizados${oPer!=="todo"?" en este periodo":""}</h3><p>${oPer!=="todo"&&opis.some(o=>o.contienda===oCont)?"Cambia el periodo a «Todo» para ver análisis anteriores.":"Los comentarios se analizan en cada revisión de redes (lunes y jueves). También puedes pegarlos tú o importar el respaldo del radar de opinión, abajo."}</p></div>`; return; }
   const tot=D.reduce((a,o)=>a+nz0(o.analizados),0);
   const kpis=`<div class="kpis">${[["Comentarios analizados",fmt(tot)],["Publicaciones revisadas",fmt(D.length)],["Fuentes distintas",fmt(new Set(D.map(o=>(o.fuente||{}).url||(o.fuente||{}).nombre||o.id)).size)],["Última revisión",D[0].fecha||"—"]].map(([l,v])=>`<div class="kpi"><span class="label">${l}</span><span class="v">${esc(v)}</span></div>`).join("")}</div>`;
   const F=S.map(s=>({s,a:oAgg(D,s.id)})), con=F.filter(f=>f.a.tot>0).sort((a,b)=>b.a.tot-a.a.tot), sin=F.filter(f=>!f.a.tot), totM=con.reduce((a,f)=>a+f.a.tot,0)||1;
   const leg=`<div class="legend">${Object.values(OTONO).map(t=>`<span><i style="background:${t.c}"></i>${t.n}</span>`).join("")}</div>`;
-  const tono=`<div class="sheet pad" style="display:flex;flex-direction:column;gap:6px"><div class="row" style="justify-content:space-between"><h3>Tono por aspirante</h3>${leg}</div>
-    <p class="small muted" style="margin:0">Comentarios que hablan de cada aspirante y en qué sentido. La presencia es la parte de esos comentarios que lo mencionan dentro de la contienda.</p>
-    ${con.map(f=>{ const fav=f.a.temas.filter(x=>x.favor>x.contra).sort((a,b)=>b.favor-a.favor).slice(0,3), cn=f.a.temas.filter(x=>x.contra>x.favor).sort((a,b)=>b.contra-a.contra).slice(0,3);
-      return `<div class="oasp"><div class="row" style="justify-content:space-between"><b><span class="fdot" style="background:${colOf[f.s.id]}"></span>${esc(f.s.nombre)}</b><span class="small muted"><span class="mono">${fmt(f.a.tot)}</span> comentarios · <span class="mono">${pct(f.a.tot/totM,0)}</span> de presencia</span></div>
+  const tono=sh(`<div class="row" style="justify-content:space-between"><h3>Tono por aspirante</h3>${leg}</div>`,
+    con.map(f=>{ const fav=f.a.temas.filter(x=>x.favor>x.contra).sort((a,b)=>b.favor-a.favor).slice(0,3), cn=f.a.temas.filter(x=>x.contra>x.favor).sort((a,b)=>b.contra-a.contra).slice(0,3), p=P[f.s.id], h=histDe(f.s.histNombre), n=netoDe(f.a.tono);
+      return `<div class="oasp"><div class="row" style="justify-content:space-between"><b><span class="fdot" style="background:${colOf[f.s.id]}"></span>${esc(f.s.nombre)}</b><span class="small muted">Índice neto <b class="mono" style="color:${n>=0?"var(--ok)":"var(--bad)"}">${netoTxt(n)}</b> · <span class="mono">${fmt(f.a.tot)}</span> comentarios · <span class="mono">${pct(f.a.tot/totM,0)}</span> de presencia</span></div>
         ${tonoBar(f.a.tono)}
-        ${fav.length||cn.length?`<div class="row small" style="gap:6px">${fav.length?`<span class="muted">Le suma:</span>${fav.map(x=>`<span class="pill ok">${esc(x.tema)} · ${fmt(x.favor)}</span>`).join("")}`:""}${cn.length?`<span class="muted"${fav.length?' style="margin-left:6px"':""}>Le resta:</span>${cn.map(x=>`<span class="pill warn">${esc(x.tema)} · ${fmt(x.contra)}</span>`).join("")}`:""}</div>`:""}</div>`; }).join("")}
-    ${sin.length?`<p class="small muted" style="margin:6px 0 0">Sin comentarios sobre ${sin.map(f=>esc(f.s.nombre)).join(", ")} en este periodo.</p>`:""}</div>`;
+        ${fav.length||cn.length?`<div class="row small" style="gap:6px">${fav.length?`<span class="muted">Le suma:</span>${fav.map(x=>`<span class="pill ok">${esc(x.tema)} · ${fmt(x.favor)}</span>`).join("")}`:""}${cn.length?`<span class="muted"${fav.length?' style="margin-left:6px"':""}>Le resta:</span>${cn.map(x=>`<span class="pill warn">${esc(x.tema)} · ${fmt(x.contra)}</span>`).join("")}`:""}</div>`:""}
+        <div class="small muted">Termómetro: ${p?`<b class="mono" style="color:var(--ink)">${fmt(p.total,0)}</b> de 100 (${esc(p.fecha)})`:"sin medición"} · Señales: ${fmt((f.s.senales||[]).length)} · Apoyos: ${fmt((f.s.apoyos||[]).length)} · Mejor votación: ${h?`<span class="mono">${fmt(h.best.v)}</span> (${h.best.y})`:"sin historial"}</div></div>`; }).join("")
+    +(sin.length?`<p class="small muted" style="margin:6px 0 0">Sin comentarios sobre ${sin.map(f=>esc(f.s.nombre)).join(", ")} en este periodo.</p>`:""),
+    "Comentarios que hablan de cada aspirante y en qué sentido. Índice neto = % a favor − % en contra (de −100 a +100). Debajo, sus datos del termómetro y del histórico.");
+  const sx=con.filter(f=>nCom(f.a.sexo.M)+nCom(f.a.sexo.H)>0);
+  const celda=t=>{ const n=nCom(t); return n?`<b class="mono" style="color:${netoDe(t)>=0?"var(--ok)":"var(--bad)"}">${netoTxt(netoDe(t))}</b> <span class="small muted">${fmt(n)} com. · ${pct(t.favor/n,0)} a favor · ${pct(t.contra/n,0)} en contra</span>`:'<span class="muted">—</span>'; };
+  const sexo=sh(`<h3>Aprobación aproximada de mujeres y hombres</h3>`,sx.length?`<div class="tbl-wrap"><table><thead><tr><th>Aspirante</th><th style="text-align:left">Mujeres</th><th style="text-align:left">Hombres</th><th>Diferencia</th></tr></thead><tbody>${sx.map(f=>{ const m=netoDe(f.a.sexo.M), h=netoDe(f.a.sexo.H), ok=nCom(f.a.sexo.M)>=10&&nCom(f.a.sexo.H)>=10;
+      return `<tr><td style="text-align:left;white-space:normal;min-width:9rem"><span class="fdot" style="background:${colOf[f.s.id]}"></span>${esc(f.s.nombre)}</td><td style="text-align:left">${celda(f.a.sexo.M)}</td><td style="text-align:left">${celda(f.a.sexo.H)}</td><td class="num">${ok&&m!=null&&h!=null?`<span class="small">Más favorable entre ${m-h>0?"mujeres":"hombres"}</span> <b class="mono">${Math.abs(m-h)}</b> <span class="small muted">pts</span>`:'<span class="small muted">Pocos datos</span>'}</td></tr>`; }).join("")}</tbody></table></div>`:'<p class="small muted" style="margin:0">Todavía no hay comentarios con sexo identificado. Se calcula al pegar los comentarios con el nombre de quien comenta (copiados de Facebook).</p>',
+    "Índice neto entre las mujeres y entre los hombres que comentan. El sexo se estima por el primer nombre de quien comenta; los nombres no se guardan. Las páginas y los nombres ambiguos quedan sin identificar. Es una aproximación: con menos de 10 comentarios por grupo no se compara.");
+  const C=new Map(); D.forEach(o=>{ const k=canalDe(o.fuente), x=C.get(k)||{k,docs:[],fuentes:new Set()}; x.docs.push(o); x.fuentes.add((o.fuente||{}).nombre||""); C.set(k,x); });
+  const canales=sh(`<h3>De dónde viene la opinión</h3>`,`<div class="tbl-wrap"><table><thead><tr><th>Canal</th><th>Comentarios</th><th style="text-align:left;min-width:11rem">Tono hacia los aspirantes</th><th style="text-align:left">De qué se habla</th><th style="text-align:left">Problemáticas de la región</th></tr></thead><tbody>${[...C.values()].sort((a,b)=>b.docs.reduce((s,o)=>s+nz0(o.analizados),0)-a.docs.reduce((s,o)=>s+nz0(o.analizados),0)).map(x=>{ const a=oAgg(x.docs,""), rg=oRegion(x.docs).slice(0,3);
+      return `<tr><td style="text-align:left;white-space:normal;min-width:9rem"><b>${esc(x.k)}</b><br><span class="small muted">${fmt(x.docs.length)} publicaciones · ${esc([...x.fuentes].filter(Boolean).slice(0,3).join(", "))}</span></td><td class="num">${fmt(x.docs.reduce((s,o)=>s+nz0(o.analizados),0))}</td>
+        <td style="text-align:left;white-space:normal">${a.tot?tonoBar(a.tono):'<span class="muted">—</span>'}</td><td style="text-align:left;white-space:normal;min-width:10rem" class="small">${a.temas.slice(0,3).map(t=>esc(t.tema)+" ("+fmt(t.tot)+")").join(", ")||"—"}</td><td style="text-align:left;white-space:normal;min-width:10rem" class="small">${rg.map(r=>esc(r.tema)+" ("+fmt(r.n)+")").join(", ")||"—"}</td></tr>`; }).join("")}</tbody></table></div>`,
+    "Separa lo que se dice en los medios de comunicación de lo que se dice en Facebook, Instagram y otras redes.");
   const A=oAgg(D,oCand), top=A.temas.slice(0,12), mx=Math.max(1,...top.map(x=>Math.max(x.favor,x.contra)));
-  const temas=`<div class="sheet pad" style="display:flex;flex-direction:column;gap:10px">
-    <div class="row" style="justify-content:space-between;align-items:flex-end"><h3>Temas de la conversación</h3><label class="field" style="min-width:220px"><span>Aspirante</span><select id="o-cand"><option value="">Todos los aspirantes</option>${S.map(s=>`<option value="${esc(s.id)}"${s.id===oCand?" selected":""}>${esc(s.nombre)}</option>`).join("")}</select></label></div>
-    <p class="small muted" style="margin:0">De qué hablan las personas en los comentarios. A la izquierda, las menciones en contra; a la derecha, las menciones a favor. Debajo de cada tema, las neutras.</p>
-    ${top.length?`<div class="otemas"><div class="ot small muted" style="padding-bottom:0"><span style="text-align:right">En contra</span><span></span><span>A favor</span></div>${top.map(x=>`<div class="ot"><div class="ot-l"><span class="mono small">${x.contra?fmt(x.contra):""}</span><i style="width:${x.contra/mx*100}%;background:var(--bad)"></i></div><span class="ot-n">${esc(x.tema)}${x.neutro?`<small class="muted">${fmt(x.neutro)} neutras</small>`:""}</span><div class="ot-r"><i style="width:${x.favor/mx*100}%;background:var(--ok)"></i><span class="mono small">${x.favor?fmt(x.favor):""}</span></div></div>`).join("")}</div>`:'<p class="small muted" style="margin:0">Sin temas para este aspirante en el periodo.</p>'}</div>`;
-  const rd=(o)=>(o.resultados||[]).filter(r=>byId[r.cand]&&nCom(r)).map(r=>esc(byId[r.cand].nombre)).join(", ")||"—";
-  const fuentes=`<div class="sheet pad" style="display:flex;flex-direction:column;gap:10px"><h3>Fuentes</h3>
-    <p class="small muted" style="margin:0">Publicaciones cuyos comentarios se analizaron. Se guardan solo los temas y el tono: no se guardan los comentarios ni los nombres de quienes comentan. Tampoco se desglosan las reacciones (me gusta, me divierte, me enoja…).</p>
-    <div class="tbl-wrap"><table><thead><tr><th>Revisión</th><th style="text-align:left">Fuente</th><th>Publicada</th><th>Comentarios</th><th style="text-align:left">Aspirantes mencionados</th><th style="text-align:left">Lo que dicen</th><th style="text-align:left">Origen</th>${ESTATICO?"":"<th></th>"}</tr></thead><tbody>
-    ${D.map(o=>{ const f=o.fuente||{};
-      return `<tr><td class="num">${esc(o.fecha||"")}</td><td style="text-align:left;white-space:normal;min-width:12rem">${f.url?`<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.nombre||f.url)}</a>`:esc(f.nombre||"—")}<br><span class="small muted">${esc([f.red,f.tipo].filter(Boolean).join(" · "))}</span></td>
-        <td class="num">${esc(f.fechaPub||"—")}</td><td class="num">${fmt(nz0(o.analizados))}</td><td style="text-align:left;white-space:normal;min-width:9rem">${rd(o)}</td>
+  const temas=sh(`<div class="row" style="justify-content:space-between;align-items:flex-end"><h3>Temas de la conversación</h3><label class="field" style="min-width:220px"><span>Aspirante</span><select id="o-cand"><option value="">Todos los aspirantes</option>${S.map(s=>`<option value="${esc(s.id)}"${s.id===oCand?" selected":""}>${esc(s.nombre)}</option>`).join("")}</select></label></div>`,
+    top.length?`<div class="otemas"><div class="ot small muted" style="padding-bottom:0"><span style="text-align:right">En contra</span><span></span><span>A favor</span></div>${top.map(x=>`<div class="ot"><div class="ot-l"><span class="mono small">${x.contra?fmt(x.contra):""}</span><i style="width:${x.contra/mx*100}%;background:var(--bad)"></i></div><span class="ot-n">${esc(x.tema)}${x.neutro?`<small class="muted">${fmt(x.neutro)} neutras</small>`:""}</span><div class="ot-r"><i style="width:${x.favor/mx*100}%;background:var(--ok)"></i><span class="mono small">${x.favor?fmt(x.favor):""}</span></div></div>`).join("")}</div>`:'<p class="small muted" style="margin:0">Sin temas para este aspirante en el periodo.</p>',
+    "De qué hablan las personas cuando se refieren a los aspirantes. A la izquierda, las menciones en contra; a la derecha, a favor.");
+  const R=oRegion(D), rmx=Math.max(1,...R.map(r=>r.n));
+  const region=sh(`<h3>Problemáticas de la región</h3>`,R.length?`<div style="display:flex;flex-direction:column;gap:6px">${R.slice(0,12).map(r=>`<div class="row" style="gap:10px;flex-wrap:nowrap"><span class="small" style="width:min(13rem,40%);flex:none"><b>${esc(r.tema)}</b><br><span class="muted">${esc([...r.canales].join(", "))}</span></span><div class="sbar" style="flex:1;min-width:4rem;margin:0"><i style="width:${r.n/rmx*100}%;background:var(--c-musculo)"></i></div><span class="mono small" style="width:4.5rem;text-align:right">${fmt(r.n)} · ${pct(r.n/(tot||1),0)}</span></div>`).join("")}</div>`:'<p class="small muted" style="margin:0">Aún no se han identificado problemáticas en los comentarios analizados.</p>',
+    "Problemas del municipio o la región que la gente menciona en los comentarios aunque no nombre a ningún aspirante (seguridad, vías, empleo, servicios…). Son temas que la campaña debe tener en cuenta.");
+  const rd=o=>(o.resultados||[]).filter(r=>byId[r.cand]&&nCom(r)).map(r=>esc(byId[r.cand].nombre)).join(", ")||"—";
+  const fuentes=sh(`<h3>Fuentes</h3>`,`<div class="tbl-wrap"><table><thead><tr><th>Revisión</th><th style="text-align:left">Fuente</th><th>Publicada</th><th>Comentarios</th><th style="text-align:left">Aspirantes mencionados</th><th style="text-align:left">Lo que dicen</th><th style="text-align:left">Origen</th>${ESTATICO?"":"<th></th>"}</tr></thead><tbody>
+    ${D.map(o=>{ const f=o.fuente||{}, al=o.alertas&&o.alertas.bodega;
+      return `<tr><td class="num">${esc(o.fecha||"")}</td><td style="text-align:left;white-space:normal;min-width:12rem">${f.url?`<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.nombre||f.url)}</a>`:esc(f.nombre||"—")}<br><span class="small muted">${esc([f.red,f.tipo].filter(Boolean).join(" · "))}</span>${al?'<br><span class="pill warn" title="Muchas cuentas repetidas o textos copiados: puede ser actividad organizada">Posible bodega</span>':""}</td>
+        <td class="num">${esc(f.fechaPub||"—")}</td><td class="num">${fmt(nz0(o.analizados))}${o.respuestas?`<br><span class="small muted">+${fmt(o.respuestas)} resp.</span>`:""}</td><td style="text-align:left;white-space:normal;min-width:9rem">${rd(o)}${(o.otros||[]).length?`<br><span class="small muted">Otros: ${esc(o.otros.map(x=>x.nombre).join(", "))}</span>`:""}</td>
         <td style="text-align:left;white-space:normal;min-width:16rem" class="small">${esc(o.resumen||"")}</td><td style="text-align:left" class="small">${esc(o.origen||"")}</td>
         ${ESTATICO?"":`<td><button class="btn sm ghost" data-odel="${esc(o.id)}" aria-label="Eliminar este análisis">✕</button></td>`}</tr>`; }).join("")}
-    </tbody></table></div></div>`;
-  out.innerHTML=kpis+tono+temas+fuentes+`<p class="note">Método: cada comentario se asigna al aspirante del que habla, a un tema y a un tono (a favor, en contra o neutro). Los comentarios que no hablan de ningún aspirante se cuentan como analizados pero no se clasifican. Es una lectura de la conversación pública en las publicaciones revisadas, no una encuesta ni mide intención de voto. Las contiendas nunca se suman entre sí.</p>`;
+    </tbody></table></div>`,"Publicaciones cuyos comentarios se analizaron. Se guardan los temas, el tono y los conteos; los textos quedan solo en tu espacio privado y nunca los nombres de quienes comentan. No se cuentan las reacciones (me gusta, me divierte, me enoja…).");
+  out.innerHTML=kpis+conj+tono+sexo+canales+temas+region+fuentes+`<p class="note">Método: cada comentario principal se asigna al aspirante del que habla, a un tema y a un tono; las respuestas se cuentan aparte. Las problemáticas se registran aunque el comentario no nombre a ningún aspirante. Es una lectura de la conversación pública en las publicaciones revisadas, no una encuesta ni mide intención de voto. Las contiendas nunca se suman entre sí.</p>`;
 }
 function oFormHTML(S){
   return `<details class="sheet pad" id="of-d"><summary style="cursor:pointer;font-weight:600">Analizar los comentarios de una publicación</summary>
     <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
-      <p class="small muted" style="margin:0;max-width:80ch">Abre la publicación (de la página de un aspirante, de un grupo público o de un medio), copia sus comentarios y pégalos aquí. Claude identifica de qué aspirante habla cada comentario, el tema y si está a favor o en contra. Solo se guardan los temas y el tono, con el enlace de la publicación como fuente.</p>
+      <p class="small muted" style="margin:0;max-width:80ch">Abre la publicación, copia todos sus comentarios (en Facebook, con los nombres: así la app separa respuestas, detecta cuentas repetidas y estima mujeres y hombres) y pégalos aquí. Claude identifica de qué aspirante habla cada comentario, el tema, el tono y las problemáticas de la región. Los nombres de quienes comentan no se guardan.</p>
       <div class="grid-f">
         <label class="field"><span>Red</span><select id="of-red">${ORED.map(x=>`<option>${x}</option>`).join("")}</select></label>
         <label class="field"><span>Tipo de fuente</span><select id="of-tipo">${OTIPOS.map(x=>`<option>${x}</option>`).join("")}</select></label>
@@ -1900,50 +1986,127 @@ function oFormHTML(S){
       <div id="of-out" style="display:flex;flex-direction:column;gap:10px"></div>
     </div></details>`;
 }
+function oImportHTML(){
+  return `<details class="sheet pad"><summary style="cursor:pointer;font-weight:600">Importar el respaldo del radar de opinión</summary>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px"><p class="small muted" style="margin:0;max-width:80ch">En el radar de opinión, ve a «Candidatos y fuentes» → «Descargar respaldo (.json)» y carga aquí ese archivo. Cada publicación pasa a su contienda (Pereira y Zarzal por separado) y cada candidato se une con el aspirante del mismo nombre. Puedes importarlo de nuevo cuando quieras: las publicaciones ya importadas se actualizan, no se duplican.</p>
+    <label class="btn" style="align-self:flex-start">Escoger archivo .json<input type="file" id="oi-file" accept=".json,application/json" hidden></label>
+    <div id="oi-out" class="small" style="display:flex;flex-direction:column;gap:8px"></div></div></details>`;
+}
+function oAspHTML(){
+  return `<details class="sheet pad"><summary style="cursor:pointer;font-weight:600">Agregar un aspirante a esta contienda</summary>
+    <form id="oa-form" style="display:flex;flex-direction:column;gap:10px;margin-top:12px"><p class="small muted" style="margin:0">Queda en el termómetro, en la opinión y en la revisión automática.</p>
+    <div class="grid-f"><label class="field" style="grid-column:1/-1"><span>Nombre completo</span><input type="text" id="oa-nom" required></label><label class="field"><span>Partido</span><input type="text" id="oa-par"></label><label class="field" style="grid-column:1/-1"><span>Apodos o formas de nombrarlo (separados por coma)</span><input type="text" id="oa-ali" placeholder="Ej. Steven, el exconcejal"></label></div>
+    <div><button class="btn primary" type="submit">Agregar aspirante</button></div></form></details>`;
+}
+function oPrompt(chunk,base,S,fuente,byId){
+  const [cg,dp,mu]=oCont.split("|");
+  return `Clasifica comentarios de una publicación en ${fuente.red} (${fuente.tipo}${fuente.nombre?": "+fuente.nombre:""}) sobre la contienda por la ${contiendaNom(cg,dp,mu)} (Colombia, elecciones de 2027).${fuente.sobre?` La publicación trata sobre ${byId[fuente.sobre].nombre}: un comentario de apoyo o rechazo sin nombre propio se refiere a esa persona.`:""}
+Aspirantes (usa solo estos ids):
+${S.map(s=>`- "${s.id}": ${s.nombre}${(s.alias||[]).length?" (también: "+s.alias.join(", ")+")":""}`).join("\n")}
+
+Para cada comentario numerado devuelve:
+- "a": lista de [id, tono] por cada aspirante del que habla; tono es "favor", "contra" o "neutro". Lista vacía si no habla de ninguno.
+- "t": tema principal (usa uno de estos si aplica: ${OTEMAS.join(", ")}), o "" si no habla de aspirantes.
+- "p": problemática del municipio o la región que menciona aunque no nombre aspirantes (ej. "Inseguridad y robos", "Mal estado de las vías", "Desempleo", "Servicio de agua", "Atención en salud"), en pocas palabras; "" si no menciona ninguna.
+Ignora spam, cadenas y etiquetas sin opinión: devuélvelos con "a":[], "t":"" y "p":"".
+Responde solo con JSON: {"c":[{"i":${base},"a":[["id","favor"]],"t":"Seguridad","p":""}],"resumen":"Una o dos frases neutrales sobre lo que dice la gente."}
+
+COMENTARIOS:
+${chunk.map((o,k)=>`[${base+k}] ${o.text.slice(0,600)}`).join("\n")}`;
+}
 async function oAnalizar(){
   const S=segs.filter(s=>tKey(s)===oCont), ids=new Set(S.map(s=>s.id)), byId=Object.fromEntries(S.map(s=>[s.id,s]));
   const txt=$("#of-txt").value.trim(), st=$("#of-st"), btn=$("#of-btn"), out=$("#of-out");
   if(!txt){ st.textContent="Pega primero los comentarios."; return; }
   const fuente={red:$("#of-red").value,tipo:$("#of-tipo").value,nombre:$("#of-nom").value.trim(),url:$("#of-url").value.trim(),fechaPub:$("#of-fpub").value,sobre:$("#of-sobre").value};
-  btn.disabled=true; st.textContent="Analizando…"; out.innerHTML=""; oPrev=null;
-  const [cg,dp,mu]=oCont.split("|");
-  const prompt=`Analiza los comentarios de una publicación en ${fuente.red} sobre la contienda por la ${contiendaNom(cg,dp,mu)} (Colombia, elecciones de 2027).
-Fuente: ${fuente.nombre||"sin nombre"} (${fuente.tipo}).${fuente.sobre?` La publicación trata sobre ${byId[fuente.sobre].nombre}: un comentario sin nombre propio se refiere a esa persona.`:""}
-Aspirantes de esta contienda (usa solo estos ids):
-${S.map(s=>`- "${s.id}": ${s.nombre}${s.partido?" ("+s.partido+")":""}`).join("\n")}
-
-Para cada comentario decide de qué aspirante habla (por nombre, apellido, apodo o el contexto), cuál es su tema principal y si está a favor, en contra o es neutro hacia ese aspirante. Un comentario puede hablar de más de un aspirante. Ignora el spam, las cadenas, las etiquetas a otras personas sin opinión y los comentarios que no hablan de ningún aspirante: cuéntalos en "analizados" pero no los clasifiques. No incluyas nombres de quienes comentan ni copies comentarios.
-Usa estos temas cuando apliquen: ${OTEMAS.join(", ")}. Si ninguno sirve, crea uno corto en español.
-
-Responde solo con JSON con esta forma exacta:
-{"analizados":40,"resultados":[{"cand":"id","favor":10,"contra":5,"neutro":3,"temas":[{"tema":"Seguridad","tono":"contra","n":4}]}],"resumen":"Una o dos frases neutrales sobre lo que dice la gente."}
-"favor", "contra" y "neutro" cuentan comentarios. "tono" es "favor", "contra" o "neutro". Máximo 8 temas por aspirante.
-
-COMENTARIOS:
-${txt.slice(0,60000)}`;
+  let items=oParse(txt); if(items.length<2) items=txt.split(/\n+/).map(t=>t.trim()).filter(t=>t.length>2).map(t=>({name:"",text:t}));
+  items=items.filter(o=>o.text).slice(0,450); items.forEach(o=>{ o.g=o.name?sexoDe(o.name):"?"; o.a=o.name?oHash(o.name):""; });
+  btn.disabled=true; out.innerHTML=""; oPrev=null;
+  const res=[]; let resumen="";
   try{
-    const r=await sampleFn.json(prompt,{modelTier:"quick"});
-    const res=(Array.isArray(r.resultados)?r.resultados:[]).filter(x=>ids.has(x.cand)).map(x=>({cand:x.cand,favor:Math.max(0,Math.round(+x.favor||0)),contra:Math.max(0,Math.round(+x.contra||0)),neutro:Math.max(0,Math.round(+x.neutro||0)),
-      temas:(Array.isArray(x.temas)?x.temas:[]).slice(0,8).map(t=>({tema:String(t.tema||"Otro").slice(0,40),tono:OTONO[t.tono]?t.tono:"neutro",n:Math.max(1,Math.round(+t.n||1))}))})).filter(x=>nCom(x));
-    oPrev={contienda:oCont,fecha:hoy(),fuente,analizados:Math.max(Math.round(+r.analizados||0),...res.map(nCom),0),resultados:res,resumen:String(r.resumen||"").slice(0,400),origen:"Registro manual"};
-    out.innerHTML=`<span class="label">Resultado · ${fmt(oPrev.analizados)} comentarios analizados</span>
-      ${res.length?res.map(x=>`<div class="oasp"><b>${esc(byId[x.cand].nombre)}</b> <span class="small muted">${fmt(nCom(x))} comentarios</span>${tonoBar(x)}<div class="chips">${x.temas.map(t=>`<span class="pill${t.tono==="contra"?" warn":t.tono==="favor"?" ok":""}">${esc(t.tema)} · ${fmt(t.n)}</span>`).join("")}</div></div>`).join(""):'<p class="small muted" style="margin:0">Ningún comentario habló de los aspirantes de esta contienda.</p>'}
-      ${oPrev.resumen?`<p class="small" style="margin:0">${esc(oPrev.resumen)}</p>`:""}
-      <div class="row"><button class="btn primary" type="button" id="of-save"${res.length?"":" disabled"}>Guardar en Opinión</button><button class="btn ghost" type="button" id="of-desc">Descartar</button></div>`;
+    for(let i=0;i<items.length;i+=150){ st.textContent=`Analizando ${fmt(Math.min(i+150,items.length))} de ${fmt(items.length)} comentarios…`;
+      const r=await sampleFn.json(oPrompt(items.slice(i,i+150),i,S,fuente,byId),{modelTier:"default"});
+      (Array.isArray(r&&r.c)?r.c:[]).forEach(x=>{ const k=+x.i; if(k>=0&&k<items.length) res[k]=x; }); if(r&&r.resumen) resumen=resumen?resumen:String(r.resumen); }
+    const byC={}, reg=new Map(), cuentas={}, textos={}; let principales=0, resp=0;
+    items.forEach((o,k)=>{ if(o.reply){ resp++; return; } principales++; if(o.a) cuentas[o.a]=(cuentas[o.a]||0)+1; const tk=onorm(o.text).replace(/[^a-z0-9ñ ]/g,"").trim(); if(tk.length>8) textos[tk]=(textos[tk]||0)+1;
+      const x=res[k]||{}, p=String(x.p||"").trim().slice(0,50); if(p){ const pk=temaKey(p), e=reg.get(pk)||{tema:p,n:0}; e.n++; reg.set(pk,e); }
+      (Array.isArray(x.a)?x.a:[]).forEach(par=>{ const id=Array.isArray(par)?par[0]:par&&par.id, tn0=Array.isArray(par)?par[1]:par&&par.tono; if(!ids.has(id)) return; const tn=OTONO[tn0]?tn0:"neutro";
+        const r=byC[id]||(byC[id]={cand:id,favor:0,contra:0,neutro:0,temas:{},sexo:{H:vacioT(),M:vacioT()}}); r[tn]++; if(o.g==="H"||o.g==="M") r.sexo[o.g][tn]++;
+        const tm=String(x.t||"Otro").slice(0,40)||"Otro", tkk=temaKey(tm)+"|"+tn; r.temas[tkk]=r.temas[tkk]||{tema:tm,tono:tn,n:0}; r.temas[tkk].n++; }); });
+    const multi=Object.values(cuentas).filter(v=>v>=3).reduce((a,b)=>a+b,0), dup=Object.values(textos).filter(v=>v>1).reduce((a,b)=>a+b,0);
+    const resultados=Object.values(byC).map(r=>({...r,temas:Object.values(r.temas).sort((a,b)=>b.n-a.n).slice(0,10)}));
+    oPrev={doc:{contienda:oCont,fecha:hoy(),fuente,analizados:principales,respuestas:resp,resultados,region:[...reg.values()].sort((a,b)=>b.n-a.n).slice(0,12),resumen:resumen.slice(0,400),origen:"Registro manual",
+      alertas:{multi,dup,bodega:principales>0&&(multi/principales>0.15||dup/principales>0.10)}},
+      coms:items.map((o,k)=>({t:o.text.slice(0,600),g:o.g,r:!!o.reply,a:(res[k]||{}).a||[],tm:(res[k]||{}).t||"",p:(res[k]||{}).p||""}))};
+    const gS=items.filter(o=>!o.reply&&o.g!=="?").length;
+    out.innerHTML=`<span class="label">Resultado · ${fmt(principales)} comentarios principales${resp?` y ${fmt(resp)} respuestas`:""} · sexo identificado en ${fmt(gS)}</span>
+      ${resultados.length?resultados.map(x=>`<div class="oasp"><b>${esc(byId[x.cand].nombre)}</b> <span class="small muted">${fmt(nCom(x))} comentarios · índice neto ${netoTxt(netoDe(x))}${nCom(x.sexo.M)+nCom(x.sexo.H)?` · mujeres ${netoTxt(netoDe(x.sexo.M))} (${nCom(x.sexo.M)}) · hombres ${netoTxt(netoDe(x.sexo.H))} (${nCom(x.sexo.H)})`:""}</span>${tonoBar(x)}<div class="chips">${x.temas.map(t=>`<span class="pill${t.tono==="contra"?" warn":t.tono==="favor"?" ok":""}">${esc(t.tema)} · ${fmt(t.n)}</span>`).join("")}</div></div>`).join(""):'<p class="small muted" style="margin:0">Ningún comentario habló de los aspirantes de esta contienda.</p>'}
+      ${oPrev.doc.region.length?`<div class="small"><span class="label">Problemáticas de la región</span><br>${oPrev.doc.region.map(r=>esc(r.tema)+" ("+r.n+")").join(", ")}</div>`:""}
+      ${oPrev.doc.alertas.bodega?`<p class="small" style="margin:0"><span class="pill warn">Posible bodega</span> ${fmt(multi)} comentarios de cuentas con 3 o más comentarios y ${fmt(dup)} textos repetidos.</p>`:""}
+      ${oPrev.doc.resumen?`<p class="small" style="margin:0">${esc(oPrev.doc.resumen)}</p>`:""}
+      <div class="row"><button class="btn primary" type="button" id="of-save"${resultados.length||reg.size?"":" disabled"}>Guardar en Opinión</button><button class="btn ghost" type="button" id="of-desc">Descartar</button></div>`;
     st.textContent="";
   }catch(e){ st.textContent=errCopy(e); }
   finally{ btn.disabled=false; }
+}
+async function oGuardar(id,doc,coms){
+  await db.collection("opinion").doc(id).set(clone(doc));
+  if(uid&&coms) try{ await db.collection(`data/users/${uid}/opiniontx`).doc(id).set({coms}); }catch(e){}
+}
+/* Importar el respaldo del radar de opinión (archivo .json) */
+const OLD_T={R:"Renovación",C:"Corrupción",G:"Gestión y experiencia",T:"Cercanía con la gente",V:"Apoyo a otra persona",S:"Rechazo sin argumento",O:"Gestión y experiencia",A:"Cercanía con la gente",D:"Apoyo directo"};
+const OLD_TIPO={grupo:"Grupo público",medio:"Página de noticias o medio",candidato:"Página o perfil del aspirante"};
+async function oImportLeer(file){
+  const box=$("#oi-out"); box.innerHTML="Leyendo…"; oImp=null;
+  let B; try{ B=JSON.parse(await file.text()); }catch(e){ box.textContent="El archivo no es un respaldo válido (.json)."; return; }
+  if(!B||!Array.isArray(B.cands)||!Array.isArray(B.meds)){ box.textContent="El archivo no parece un respaldo del radar de opinión."; return; }
+  const cand=id=>B.cands.find(c=>c.id===id)||{nombre:"?",mun:""}, fu=id=>(B.fuentes||[]).find(f=>f.id===id)||{};
+  const segDe=c=>segs.find(s=>onorm(s.municipio)===onorm(c.mun)&&mismaP(s.nombre,c.nombre));
+  const contDe=mun=>{ const s=segs.find(x=>onorm(x.municipio)===onorm(mun)&&x.cargo==="alcaldia")||segs.find(x=>onorm(x.municipio)===onorm(mun)); return s?tKey(s):null; };
+  const G=new Map(); B.meds.forEach(m=>{ const k=m.grupo?"g"+m.grupo:m.deriv?"m"+m.deriv:"m"+m.id; (G.get(k)||G.set(k,[]).get(k)).push(m); });
+  const docs=[], sinCont=new Set(), sinSeg=new Map();
+  G.forEach((ms,k)=>{
+    const g=k[0]==="g"?(B.grupos||[]).find(x=>"g"+x.id===k)||{}:{}, base=k[0]==="g"?g:(ms.find(m=>!m.deriv)||ms[0]);
+    const mun=cand(ms[0].cand).mun||fu(base.fuente).mun||""; const cont=contDe(mun); if(!cont){ sinCont.add(mun||"sin municipio"); return; }
+    const f=fu(base.fuente), desc=String(base.desc||""), fecha=String(base.fcap||ms[0].fcap||"").slice(0,10)||hoy();
+    const byC={}, otros={}; let principales=0, resp=0; const coms=[], vistos=new Set();
+    ms.forEach(m=>{ const c=cand(m.cand), s=segDe(c);
+      (m.coms||[]).forEach(cm=>{ if(cm.x) return; const ck=(cm.a||"")+"|"+cm.t; if(!vistos.has(ck)){ vistos.add(ck); if(cm.r) resp++; else principales++; coms.push({t:String(cm.t||"").slice(0,600),g:cm.g||"?",r:!!cm.r,a:[],tm:OLD_T[cm.th]||"",p:""}); }
+        if(cm.r) return; const tn=cm.tono==="P"?"favor":cm.tono==="N"?"contra":"neutro";
+        if(!s){ const on=c.nombre; otros[on]=(otros[on]||0)+1; sinSeg.set(on+" ("+(c.mun||"")+")",1); return; }
+        const r=byC[s.id]||(byC[s.id]={cand:s.id,favor:0,contra:0,neutro:0,temas:{},sexo:{H:vacioT(),M:vacioT()}}); r[tn]++; if(cm.g==="H"||cm.g==="M") r.sexo[cm.g][tn]++;
+        const tm=OLD_T[cm.th]; if(tm){ const kk=temaKey(tm)+"|"+tn; r.temas[kk]=r.temas[kk]||{tema:tm,tono:tn,n:0}; r.temas[kk].n++; } }); });
+    if(k[0]==="g"&&g.principales) principales=g.principales;
+    docs.push({id:`${tSlug(cont)}_${fecha}_imp-${k}`,coms,doc:{contienda:cont,fecha,fuente:{red:"Facebook",tipo:OLD_TIPO[f.tipo]||"Otra",nombre:f.nombre||"",url:/^https?:\/\//.test(desc)?desc:"",fechaPub:String(base.fpub||"").slice(0,10),sobre:k[0]==="g"?"":((segDe(cand(base.cand))||{}).id||"")},
+      analizados:principales,respuestas:resp,resultados:Object.values(byC).map(r=>({...r,temas:Object.values(r.temas).sort((a,b)=>b.n-a.n)})),region:[],otros:Object.entries(otros).map(([nombre,n])=>({nombre,n})),
+      resumen:/^https?:\/\//.test(desc)?"":desc.slice(0,300),origen:"Radar de opinión (importado)"}});
+  });
+  oImp=docs;
+  const porC={}; docs.forEach(d=>{ const x=porC[d.doc.contienda]||(porC[d.doc.contienda]={p:0,c:0}); x.p++; x.c+=d.doc.analizados; });
+  box.innerHTML=`<div>${Object.entries(porC).map(([k,v])=>`<b>${esc(contiendaNom(...k.split("|")))}</b>: ${fmt(v.p)} publicaciones, ${fmt(v.c)} comentarios`).join("<br>")||"No hay publicaciones para importar."}</div>
+    ${sinSeg.size?`<div class="muted">No están en seguimiento (sus comentarios se guardan como «otros nombres»): ${esc([...sinSeg.keys()].join(", "))}. Si quieres medirlos, agrégalos abajo y vuelve a importar.</div>`:""}
+    ${sinCont.size?`<div class="muted">Sin contienda en el radar (no se importan): ${esc([...sinCont].join(", "))}.</div>`:""}
+    ${docs.length?`<div class="row"><button class="btn primary" type="button" id="oi-ok">Importar ${fmt(docs.length)} publicaciones</button><span class="muted" id="oi-st"></span></div>`:""}`;
+}
+async function oImportar(btn){
+  if(!oImp) return; btn.disabled=true; const st=$("#oi-st"); let n=0;
+  try{ for(const d of oImp){ await oGuardar(d.id,d.doc,d.coms); n++; st.textContent=`Guardando ${n} de ${oImp.length}…`; }
+    st.textContent=""; $("#oi-out").innerHTML=`<span class="pill ok">Listo: ${fmt(n)} publicaciones importadas</span>`; oImp=null; toast("Respaldo importado"); }
+  catch(e){ btn.disabled=false; st.textContent=`Se guardaron ${n}. No se pudo seguir: solo el dueño de la app puede importar.`; }
 }
 document.addEventListener("click",async e=>{
   const t=e.target.closest("button,a"); if(!t) return;
   if(t.id==="of-btn") oAnalizar();
   else if(t.id==="of-desc"){ oPrev=null; $("#of-out").innerHTML=""; }
   else if(t.id==="of-save"&&oPrev){ t.disabled=true;
-    const id=`${tSlug(oPrev.contienda)}_${oPrev.fecha}_${Date.now().toString(36)}`;
-    try{ await db.collection("opinion").doc(id).set(clone(oPrev)); oPrev=null; toast("Análisis guardado en Opinión"); $("#of-txt").value=""; $("#of-url").value=""; $("#of-out").innerHTML=""; }
+    const id=`${tSlug(oPrev.doc.contienda)}_${oPrev.doc.fecha}_${Date.now().toString(36)}`;
+    try{ await oGuardar(id,oPrev.doc,oPrev.coms); oPrev=null; toast("Análisis guardado en Opinión"); $("#of-txt").value=""; $("#of-url").value=""; $("#of-out").innerHTML=""; }
     catch(err){ t.disabled=false; toast("No se pudo guardar. Solo el dueño de la app puede guardar análisis."); } }
+  else if(t.id==="oi-ok") oImportar(t);
+  else if(t.dataset.conj) generarConjunta(t.dataset.conj,t);
+  else if(t.dataset.conjstop) conjCtl&&conjCtl.abort();
   else if(t.dataset.odel){
-    if(t.dataset.armed){ try{ await db.collection("opinion").doc(t.dataset.odel).delete(); toast("Análisis eliminado"); }catch(err){ toast("No se pudo eliminar."); } }
+    if(t.dataset.armed){ try{ await db.collection("opinion").doc(t.dataset.odel).delete(); if(uid) db.collection(`data/users/${uid}/opiniontx`).doc(t.dataset.odel).delete().catch(()=>{}); toast("Análisis eliminado"); }catch(err){ toast("No se pudo eliminar."); } }
     else{ t.dataset.armed="1"; t.textContent="¿Eliminar?"; setTimeout(()=>{ if(t.isConnected){ delete t.dataset.armed; t.textContent="✕"; } },4000); } }
   else if(t.dataset.gop){ oCont=t.dataset.gop; oCand=""; oPer="todo"; }
 });
@@ -1952,6 +2115,16 @@ document.addEventListener("change",e=>{
   if(t.id==="o-cont"){ oCont=t.value; oCand=""; oPrev=null; renderOpinion(); }
   else if(t.id==="o-per"){ oPer=t.value; renderOpinion(); }
   else if(t.id==="o-cand"){ oCand=t.value; renderOpinion(); }
+  else if(t.id==="oi-file"&&t.files&&t.files[0]){ oImportLeer(t.files[0]); t.value=""; }
+});
+document.addEventListener("submit",async e=>{
+  if(e.target.id!=="oa-form") return; e.preventDefault();
+  const nombre=$("#oa-nom").value.trim(); if(!nombre) return;
+  const S=segs.filter(s=>tKey(s)===oCont); if(S.some(s=>mismaP(s.nombre,nombre))){ toast("Ese aspirante ya está en la contienda."); return; }
+  const [cargo,depto,municipio]=oCont.split("|"), pref=S.length?S[0].id.split("-")[0]:onorm(municipio||depto).slice(0,3);
+  let id=pref+"-"+otk(nombre).slice(-1)[0]; while(segs.some(s=>s.id===id)) id+="2";
+  const doc={nombre,cargo,depto,municipio,partido:$("#oa-par").value.trim(),histNombre:"",rol:"",cuentas:{},senales:[],apoyos:[],analisis:[],alias:$("#oa-ali").value.split(",").map(x=>x.trim()).filter(Boolean)};
+  try{ await db.collection("seguimiento").doc(id).set(doc); toast("Aspirante agregado"); e.target.reset(); $("#o-form").dataset.c=""; }catch(err){ toast("No se pudo agregar. Solo el dueño de la app puede hacerlo."); }
 });
 /* Informe PDF del termómetro: se arma con lo que muestra la vista y se pagina en A4 */
 const PDF_LIBS=["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js","https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.12/dist/html2canvas-pro.min.js"];
